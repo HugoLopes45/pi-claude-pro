@@ -6,14 +6,12 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { readClaudeCodeVersion } from "../src/claude-code.ts";
 import { parseLimitHeaders, type Limits } from "../src/limits.ts";
-import { mentionsPi, piDocsSection } from "../src/pi-docs.ts";
 import { createProviderStream, isSubscriptionToken } from "../src/provider.ts";
 import { createRateLimits } from "../src/rate-limit.ts";
 import { footer, READY, type Footer } from "../src/status.ts";
 import { fetchUsage } from "../src/usage.ts";
 
 const STATUS_KEY = "claude-pro";
-const DOCS_MESSAGE = "claude-pro-pi-docs";
 
 async function usesSubscription(ctx: ExtensionContext): Promise<boolean> {
   const model = ctx.model;
@@ -67,24 +65,6 @@ export default function claudePro(pi: ExtensionAPI): void {
     if (!(await usesSubscription(current))) return;
     const limits = parseLimitHeaders(event.headers, event.status);
     if (limits) showLimits(limits);
-  });
-
-  // The provider removes Pi's documentation from the system prompt. Give it
-  // back as a hidden message, once per branch, when the user asks about Pi.
-  pi.on("before_agent_start", async (event, current) => {
-    if (!mentionsPi(event.prompt) || !(await usesSubscription(current))) return;
-    const docs = piDocsSection(event.systemPrompt);
-    if (!docs) return;
-    const alreadySent = current.sessionManager
-      .getBranch()
-      .some(
-        (entry) =>
-          entry.type === "custom_message" && entry.customType === DOCS_MESSAGE,
-      );
-    if (alreadySent) return;
-    return {
-      message: { customType: DOCS_MESSAGE, content: docs, display: false },
-    };
   });
 
   pi.on("session_shutdown", (_event, current) => {

@@ -8,6 +8,7 @@ import {
   ModelRuntime,
   SessionManager,
   SettingsManager,
+  type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,6 +61,7 @@ const REPLY = sse([
 async function runPrompt(
   response: (url: string) => Response,
   prompts = ["Reply with exactly: OK"],
+  extensionFactories: ((pi: ExtensionAPI) => void)[] = [],
 ): Promise<{ sent: Sent[]; text: string }> {
   const sent: Sent[] = [];
   vi.stubGlobal(
@@ -77,8 +79,15 @@ async function runPrompt(
 
   const agentDir = mkdtempSync(join(tmpdir(), "pi-claude-pro-agent-"));
   const cwd = mkdtempSync(join(tmpdir(), "pi-claude-pro-cwd-"));
+  // Pi retries at two levels: inside the provider request and after a failed
+  // turn. Both stay on, with no delay, so the tests see every retry.
   const settingsManager = SettingsManager.inMemory({
-    retry: { enabled: false },
+    retry: {
+      enabled: true,
+      maxRetries: 2,
+      baseDelayMs: 0,
+      provider: { maxRetries: 2 },
+    },
   });
   const modelRuntime = await ModelRuntime.create({
     authPath: join(agentDir, "auth.json"),
@@ -94,6 +103,7 @@ async function runPrompt(
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
+    extensionFactories,
     additionalExtensionPaths: [
       resolve(import.meta.dirname, "../extensions/index.ts"),
     ],
@@ -175,28 +185,51 @@ describe("inside Pi", () => {
     expect(system.slice(1).join("\n")).toContain("operating inside pi");
   });
 
+  const rateLimited = (headers: Record<string, string>) => () =>
+    Response.json(
+      { type: "error", error: { type: "rate_limit_error", message: "Error" } },
+      { status: 429, headers: { "retry-after": "0", ...headers } },
+    );
+  const messageRequests = (sent: Sent[]) =>
+    sent.filter((request) => request.url.includes("/v1/messages"));
+
+  it("explains exhausted extra usage from HTTP 400 without retries or usage lookup", async () => {
+    const { sent, text } = await runPrompt(() =>
+      Response.json(
+        {
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            message:
+              "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+          },
+        },
+        { status: 400 },
+      ),
+    );
+    expect(text).toBe("Claude extra usage limit reached");
+    expect(sent).toHaveLength(1);
+  });
+
+  it("lets Pi retry a transient 429", async () => {
+    const { sent } = await runPrompt((url) =>
+      url.endsWith("/api/oauth/usage")
+        ? Response.json({ five_hour: { utilization: 10 } })
+        : rateLimited({})(),
+    );
+    // 3 provider attempts in each of 3 turns.
+    expect(messageRequests(sent)).toHaveLength(9);
+  });
+
   it("explains an exhausted subscription instead of retrying", async () => {
     const { sent, text } = await runPrompt(
-      () =>
-        new Response(
-          JSON.stringify({
-            type: "error",
-            error: { type: "rate_limit_error", message: "Error" },
-          }),
-          {
-            status: 429,
-            headers: {
-              "content-type": "application/json",
-              "anthropic-ratelimit-unified-status": "rejected",
-              "anthropic-ratelimit-unified-representative-claim": "five_hour",
-            },
-          },
-        ),
+      rateLimited({
+        "anthropic-ratelimit-unified-status": "rejected",
+        "anthropic-ratelimit-unified-representative-claim": "five_hour",
+      }),
     );
     expect(text).toBe("Claude 5-hour limit reached");
-    expect(
-      sent.filter((request) => request.url.includes("/v1/messages")),
-    ).toHaveLength(1);
+    expect(messageRequests(sent)).toHaveLength(1);
   });
 
   it("asks the usage endpoint when a 429 does not say which limit is spent", async () => {
@@ -206,13 +239,7 @@ describe("inside Pi", () => {
             five_hour: { utilization: 100, resets_at: null },
             seven_day: { utilization: 40, resets_at: null },
           })
-        : Response.json(
-            {
-              type: "error",
-              error: { type: "rate_limit_error", message: "Error" },
-            },
-            { status: 429, headers: { "retry-after": "0" } },
-          ),
+        : rateLimited({})(),
     );
     expect(text).toBe("Claude 5-hour limit reached");
     const usage = sent.filter((request) =>
@@ -221,27 +248,60 @@ describe("inside Pi", () => {
     expect(usage).toHaveLength(1);
     expect(usage[0]?.headers.get("authorization")).toBe(`Bearer ${TOKEN}`);
     expect(usage[0]?.headers.get("anthropic-beta")).toBe("oauth-2025-04-20");
-    expect(
-      sent.filter((request) => request.url.includes("/v1/messages")),
-    ).toHaveLength(1);
+    expect(messageRequests(sent)).toHaveLength(1);
   });
 
-  it("gives Pi's docs back once when the user asks about Pi", async () => {
+  it("preserves a replacement prompt while moving only Pi documentation", async () => {
+    const custom =
+      "<docs>Project documentation</docs>\nKeep custom instructions.";
+    const { sent } = await runPrompt(
+      () =>
+        new Response(REPLY, {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ["hello", "next"],
+      [
+        (pi) => {
+          pi.on("before_agent_start", (event) => ({
+            systemPrompt: `${event.systemPrompt}\n${custom}`,
+          }));
+        },
+      ],
+    );
+    expect(sent).toHaveLength(2);
+    for (const request of sent) {
+      const system = request.body.system.map((block) => block.text).join("\n");
+      expect(system).not.toContain("Pi documentation");
+      expect(system).toContain(custom);
+      expect(system).toContain("operating inside pi");
+      expect(
+        JSON.stringify(request.body.messages).split(
+          "Pi documentation (read only",
+        ),
+      ).toHaveLength(2);
+    }
+  });
+
+  it("moves Pi's docs into the first user message of every request", async () => {
     const ok = () =>
       new Response(REPLY, { headers: { "content-type": "text/event-stream" } });
     const { sent } = await runPrompt(ok, [
-      "How do I write a pi extension?",
-      "And a pi theme?",
+      "Comment créer une extension pour cet agent ?",
+      "Et un thème ?",
     ]);
     const docsCount = (request: Sent | undefined) =>
       JSON.stringify(request?.body.messages).split(
         "Pi documentation (read only",
       ).length - 1;
     expect(sent).toHaveLength(2);
-    expect(docsCount(sent[0])).toBe(1);
-    expect(docsCount(sent[1])).toBe(1);
-    expect(
-      sent[0]?.body.system.map((block) => block.text).join("\n"),
-    ).not.toContain("Pi documentation");
+    for (const request of sent) {
+      expect(docsCount(request)).toBe(1);
+      expect(JSON.stringify(request.body.messages?.[0])).toContain(
+        "Pi documentation (read only",
+      );
+      expect(
+        request.body.system.map((block) => block.text).join("\n"),
+      ).not.toContain("Pi documentation");
+    }
   });
 });

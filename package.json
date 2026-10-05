@@ -1,6 +1,6 @@
 {
   "name": "pi-claude-pro",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Use your Claude Pro or Max subscription in Pi.",
   "type": "module",
   "license": "MIT",
@@ -35,7 +35,9 @@
   "scripts": {
     "check": "tsc --noEmit && vitest --run",
     "test": "vitest --run",
-    "prepublishOnly": "test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
+    "check:live": "node scripts/live-check.ts",
+    "release": "node scripts/release.ts prepare",
+    "prepublishOnly": "test -n \"$GITHUB_ACTIONS\" || test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

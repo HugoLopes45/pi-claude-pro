@@ -127,11 +127,18 @@ describe("createProviderStream", () => {
       headers: { "x-app": "pi" },
       fetch: piFetch(200),
     };
-    const result = await createProviderStream(deps({ stream: adapter.stream }))(
-      model,
-      context,
-      options,
-    ).result();
+    const original = normalizeContext({
+      systemPrompt: "<docs>\nPi documentation\n</docs>\nCustom rules",
+      messages: [{ role: "user", content: "hello", timestamp: 0 }],
+    });
+    const result = await createProviderStream(
+      deps({
+        stream: (m, sentContext, sentOptions) => {
+          expect(sentContext).toBe(original);
+          return adapter.stream(m, sentContext, sentOptions);
+        },
+      }),
+    )(model, original, options).result();
     expect(result.stopReason).toBe("stop");
     expect(adapter.calls[0]).toEqual({ model, options });
   });
@@ -173,18 +180,18 @@ describe("createProviderStream", () => {
     });
   });
 
-  it("fails visibly when Claude Code is missing", async () => {
+  it("fails visibly when the Claude Code version is unreadable", async () => {
     const adapter = fakeAdapter();
     const stream = createProviderStream(
       deps({
         stream: adapter.stream,
         claudeCodeVersion: () => {
-          throw new Error("needs Claude Code");
+          throw new Error("cannot run claude --version");
         },
       }),
     );
     const result = await stream(model, context, { apiKey: TOKEN }).result();
-    expect(result.errorMessage).toBe("needs Claude Code");
+    expect(result.errorMessage).toBe("cannot run claude --version");
     expect(adapter.calls).toHaveLength(0);
   });
 

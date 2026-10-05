@@ -1,4 +1,3 @@
-import { removePiDocs } from "./pi-docs.ts";
 import { isRecord } from "./util.ts";
 
 const IDENTITY_TEXT =
@@ -31,8 +30,8 @@ export function firstUserText(payload: unknown): string {
 }
 
 /**
- * Puts the billing block first, drops any earlier billing block and Pi's
- * Claude Code identity line, and removes Pi's documentation section.
+ * Puts the billing block first, and drops any earlier billing block and Pi's
+ * Claude Code identity line.
  */
 export function rewriteSystem(payload: unknown, billing: string): unknown {
   if (!isRecord(payload)) return payload;
@@ -42,12 +41,9 @@ export function rewriteSystem(payload: unknown, billing: string): unknown {
       : Array.isArray(payload.system)
         ? payload.system
         : [];
-  const prompt = blocks.flatMap((block): unknown[] => {
-    if (!isTextBlock(block)) return [block];
-    if (block.text.startsWith(BILLING_PREFIX)) return [];
-    const text = removePiDocs(block.text);
-    return text ? [{ ...block, text }] : [];
-  });
+  const prompt: unknown[] = blocks.filter(
+    (block) => !isTextBlock(block) || !block.text.startsWith(BILLING_PREFIX),
+  );
   const withoutIdentity = prompt.filter(
     (block) => !isTextBlock(block) || block.text !== IDENTITY_TEXT,
   );
