@@ -1,5 +1,9 @@
 # pi-claude-pro
 
+[![npm](https://img.shields.io/npm/v/pi-claude-pro)](https://www.npmjs.com/package/pi-claude-pro)
+[![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
+[![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
+
 Use your Claude Pro or Max subscription in [Pi](https://pi.dev).
 
 > **Unofficial.** Anthropic does not support this package. Using a subscription outside Claude Code can break the Anthropic Consumer Terms. Anthropic can change or block this access at any time. You accept this risk.
@@ -28,6 +32,21 @@ Requests that use an Anthropic API key are not changed.
 pi install npm:pi-claude-pro
 ```
 
+To try it for one session without installing:
+
+```bash
+pi -e npm:pi-claude-pro
+```
+
+To update or remove it:
+
+```bash
+pi update --extensions
+pi remove npm:pi-claude-pro
+```
+
+Use only one extension that handles the `anthropic` provider. Remove other Claude subscription extensions before you install this one.
+
 ## Set up
 
 1. Start Pi.
@@ -53,7 +72,7 @@ The footer shows **Claude Pro** when the extension is active.
 
 **`usage lookup failed`**: Anthropic returned HTTP 429, and the usage endpoint did not answer. Pi retries the request.
 
-**No `Claude Pro` in the footer**: run `/login` again and select **Anthropic (Claude Pro/Max)**, not the API key.
+**No `Claude Pro` in the footer**: run `/login` again and select **Anthropic (Claude Pro/Max)**, not the API key. Then run `pi list` and check that no other extension handles Claude.
 
 ## Development
 
@@ -64,6 +83,8 @@ pi -e .
 ```
 
 The tests run offline. They load the extension in Pi and replace the network with a fake Anthropic server.
+
+Report bugs on [GitHub Issues](https://github.com/HugoLopes45/pi-claude-pro/issues).
 
 ## License
 
