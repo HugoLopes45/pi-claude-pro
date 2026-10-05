@@ -111,7 +111,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
           );
           return rewriteSystem(next, billing);
         },
-        // Error responses never reach onResponse, so 429s are read here.
+        // Error responses never reach onResponse, so quota errors are read here.
         fetch: async (input, init) =>
           watch.inspect(await (options.fetch ?? fetch)(input, init)),
       },

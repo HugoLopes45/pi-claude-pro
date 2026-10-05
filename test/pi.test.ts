@@ -190,6 +190,24 @@ describe("inside Pi", () => {
   const messageRequests = (sent: Sent[]) =>
     sent.filter((request) => request.url.includes("/v1/messages"));
 
+  it("explains exhausted extra usage from HTTP 400 without retries or usage lookup", async () => {
+    const { sent, text } = await runPrompt(() =>
+      Response.json(
+        {
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            message:
+              "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+          },
+        },
+        { status: 400 },
+      ),
+    );
+    expect(text).toBe("Claude extra usage limit reached");
+    expect(sent).toHaveLength(1);
+  });
+
   it("lets Pi retry a transient 429", async () => {
     const { sent } = await runPrompt((url) =>
       url.endsWith("/api/oauth/usage")

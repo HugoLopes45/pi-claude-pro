@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Recognize Anthropic's HTTP 400 extra-usage exhaustion response without consuming its body or retrying the rejected request.
+
 ## 1.1.0
 
 - Claude Code is optional. Without it, the extension uses the bundled Claude Code version 2.1.289.

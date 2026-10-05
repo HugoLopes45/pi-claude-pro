@@ -28,6 +28,57 @@ function reply(status: number, headers: Record<string, string> = {}): Response {
 }
 
 describe("createRateLimits", () => {
+  it("recognizes exhausted extra usage in a 400 without consuming its body", async () => {
+    const fetchUsage = vi.fn();
+    const onLimits = vi.fn();
+    const watch = watcher({ fetchUsage, onLimits })(auth);
+    const body = {
+      type: "error",
+      error: {
+        type: "invalid_request_error",
+        message:
+          "You're out of extra usage. Add more at claude.ai/settings/usage and keep going.",
+      },
+    };
+    const response = await watch.inspect(Response.json(body, { status: 400 }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual(body);
+    expect(response.headers.get("x-should-retry")).toBe("false");
+    expect(watch.explain("400 invalid_request_error")).toBe(
+      "Claude extra usage limit reached",
+    );
+    expect(onLimits).toHaveBeenCalledWith({
+      exhausted: true,
+      extraUsage: false,
+      claim: "overage",
+      windows: [],
+    });
+    expect(fetchUsage).not.toHaveBeenCalled();
+    await watch.inspect(reply(200));
+    expect(watch.explain("another error")).toBe("another error");
+  });
+
+  it.each([
+    "not JSON",
+    "null",
+    JSON.stringify({
+      type: "error",
+      error: { type: "invalid_request_error", message: "Invalid model" },
+    }),
+    JSON.stringify({
+      type: "error",
+      error: { type: "invalid_request_error", message: 42 },
+    }),
+  ])("preserves unrelated or malformed 400 bodies: %s", async (body) => {
+    const fetchUsage = vi.fn();
+    const watch = watcher({ fetchUsage })(auth);
+    const response = new Response(body, { status: 400 });
+    expect(await watch.inspect(response)).toBe(response);
+    expect(await response.text()).toBe(body);
+    expect(watch.explain("original error")).toBe("original error");
+    expect(fetchUsage).not.toHaveBeenCalled();
+  });
+
   it("leaves successful responses alone", async () => {
     const fetchUsage = vi.fn(async () => spentBody);
     const watch = watcher({ fetchUsage })(auth);

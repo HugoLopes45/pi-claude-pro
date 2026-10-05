@@ -1,7 +1,7 @@
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
 import { parseLimitHeaders, parseUsageBody, type Limits } from "./limits.ts";
 import { exhaustedMessage } from "./status.ts";
-import { errorText } from "./util.ts";
+import { errorText, isRecord } from "./util.ts";
 
 const USAGE_CACHE_MS = 30_000;
 
@@ -19,10 +19,29 @@ export interface RateLimitDeps {
   now?: () => number;
 }
 
-/** Watches the responses of one request and explains its 429 error. */
+/** Watches one request and explains subscription quota errors. */
 export interface RequestWatch {
   inspect(response: Response): Promise<Response>;
   explain(errorMessage: string | undefined): string | undefined;
+}
+
+async function isExtraUsageExhausted(response: Response): Promise<boolean> {
+  let body: unknown;
+  try {
+    body = await response.clone().json();
+  } catch (error) {
+    // Leave non-JSON responses to the provider's normal error handling.
+    if (error instanceof SyntaxError) return false;
+    throw error;
+  }
+  return (
+    isRecord(body) &&
+    body.type === "error" &&
+    isRecord(body.error) &&
+    body.error.type === "invalid_request_error" &&
+    typeof body.error.message === "string" &&
+    body.error.message.startsWith("You're out of extra usage.")
+  );
 }
 
 export function createRateLimits(
@@ -50,18 +69,29 @@ export function createRateLimits(
       async inspect(response) {
         limits = undefined;
         lookupError = undefined;
-        if (response.status !== 429) return response;
-
-        limits = parseLimitHeaders(Object.fromEntries(response.headers), 429);
-        if (!limits?.exhausted) {
-          try {
-            limits = (await usage(auth)) ?? limits;
-          } catch (error) {
-            lookupError = errorText(error);
+        if (response.status === 400) {
+          if (!(await isExtraUsageExhausted(response))) return response;
+          limits = {
+            exhausted: true,
+            extraUsage: false,
+            claim: "overage",
+            windows: [],
+          };
+        } else if (response.status === 429) {
+          limits = parseLimitHeaders(Object.fromEntries(response.headers), 429);
+          if (!limits?.exhausted) {
+            try {
+              limits = (await usage(auth)) ?? limits;
+            } catch (error) {
+              lookupError = errorText(error);
+            }
           }
+        } else {
+          return response;
         }
-        if (limits) deps.onLimits(limits);
-        if (!limits?.exhausted) return response;
+        if (!limits) return response;
+        deps.onLimits(limits);
+        if (!limits.exhausted) return response;
 
         // Retrying a spent subscription only delays the error.
         const headers = new Headers(response.headers);
