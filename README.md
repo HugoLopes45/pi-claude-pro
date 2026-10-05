@@ -1,5 +1,6 @@
 # pi-claude-pro
 
+[![CI](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pi-claude-pro)](https://www.npmjs.com/package/pi-claude-pro)
 [![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
 [![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
@@ -26,7 +27,7 @@ Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom
 
 ## Requirements
 
-- Pi 1.x. The tests run against Pi 1.0.3.
+- Pi. CI checks the lockfile baseline and the latest published Pi packages; see the compatibility policy below.
 - A Claude Pro or Max subscription.
 
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version. Otherwise it sends the bundled version, 2.1.289.
@@ -83,12 +84,12 @@ The footer shows **Claude Pro** when the extension is active.
 
 - **Unofficial.** Anthropic does not support this package. Using a subscription outside Claude Code can break the Anthropic Consumer Terms. You accept this risk.
 - **Server contract.** The request is valid only while Anthropic accepts the Claude Code identity that this package sends: headers, billing block and its checksum. Anthropic does not publish this contract and can change it at any time. The offline tests cannot detect such a change. Run `npm run check:live` to test the current contract.
-- **Pi versions.** The `peerDependencies` range is `*`, because Pi requires it for the packages that it provides. The tests cover the Pi version in `devDependencies`.
+- **Pi versions.** Host-provided packages use `peerDependencies: "*"`; the extension does not bundle or enforce a specific Pi version. The lockfile gives reproducible baseline tests. CI also installs the latest published Pi packages on Node 24 and reruns all checks, on pull requests and weekly. A passing check establishes compatibility with those versions, not unknown future API changes.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run check
 pi -e .
 ```
@@ -106,6 +107,8 @@ It sends one small request to `claude-haiku-4-5` and fails when Anthropic does n
 Report bugs on [GitHub Issues](https://github.com/HugoLopes45/pi-claude-pro/issues).
 
 ## Contributing and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and pull requests. Report vulnerabilities through [SECURITY.md](SECURITY.md), not public issues.
 
 1. Open a pull request. CI runs `npm run check` on Node 22 and 24.
 2. Add user-visible changes under `## Unreleased` in `CHANGELOG.md`.

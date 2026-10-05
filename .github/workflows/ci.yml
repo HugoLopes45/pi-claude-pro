@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * 1'
   pull_request:
   push:
     branches: [main]
@@ -31,3 +34,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Check latest Pi
+        if: matrix.node == 24
+        run: |
+          npm install --no-save --package-lock=false @earendil-works/pi-ai@latest @earendil-works/pi-coding-agent@latest
+          npm run check

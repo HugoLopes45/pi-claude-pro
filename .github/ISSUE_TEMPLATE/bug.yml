@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem with pi-claude-pro.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities, use [private reporting](https://github.com/HugoLopes45/pi-claude-pro/security/advisories/new).
+        Do not paste tokens, credentials, private conversations, or unredacted request headers.
+  - type: textarea
+    id: versions
+    attributes:
+      label: Environment
+      description: Include the package, Pi, Node.js, operating system, and model versions. State whether authentication uses a subscription or API key, never the credential.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Give a minimal example using synthetic data. Mention relevant extensions, without sharing your private configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Describe the expected result and the failure. Include sanitized error text if available.
+    validations:
+      required: true
