@@ -1,5 +1,6 @@
 # pi-claude-pro
 
+[![CI](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pi-claude-pro)](https://www.npmjs.com/package/pi-claude-pro)
 [![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
 [![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
@@ -88,7 +89,7 @@ The footer shows **Claude Pro** when the extension is active.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run check
 pi -e .
 ```
@@ -106,6 +107,8 @@ It sends one small request to `claude-haiku-4-5` and fails when Anthropic does n
 Report bugs on [GitHub Issues](https://github.com/HugoLopes45/pi-claude-pro/issues).
 
 ## Contributing and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and pull requests. Report vulnerabilities through [SECURITY.md](SECURITY.md), not public issues.
 
 1. Open a pull request. CI runs `npm run check` on Node 22 and 24.
 2. Add user-visible changes under `## Unreleased` in `CHANGELOG.md`.
