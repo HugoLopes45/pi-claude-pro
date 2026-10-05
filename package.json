@@ -36,7 +36,8 @@
     "check": "tsc --noEmit && vitest --run",
     "test": "vitest --run",
     "check:live": "node scripts/live-check.ts",
-    "prepublishOnly": "test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
+    "release": "node scripts/release.ts prepare",
+    "prepublishOnly": "test -n \"$GITHUB_ACTIONS\" || test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

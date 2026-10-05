@@ -1,0 +1,59 @@
+name: Release
+
+# Publishes the version in package.json when npm does not have it, then creates its GitHub release.
+# npm authenticates this workflow through trusted publishing (OIDC), so no token is stored.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - name: Read the version
+        id: version
+        run: |
+          name=$(node -p 'require("./package.json").name')
+          version=$(node -p 'require("./package.json").version')
+          published=$(node scripts/release.ts published "$name" "$version")
+          released=false
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then released=true; fi
+          {
+            echo "version=$version"
+            echo "published=$published"
+            echo "released=$released"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Publish to npm
+        if: steps.version.outputs.published == 'false'
+        run: npm publish
+      - name: Create the GitHub release
+        if: steps.version.outputs.released == 'false'
+        run: |
+          node scripts/release.ts notes "$VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}

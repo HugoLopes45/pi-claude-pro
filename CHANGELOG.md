@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add CI on Node 22 and 24, release pull-request tooling, and npm trusted-publishing automation.
 - Recognize Anthropic's HTTP 400 extra-usage exhaustion response without consuming its body or retrying the rejected request.
 - Handle Pi documentation in both structured system prompts and text prompts replaced by other extensions, without configuration-specific hooks.
 - Preserve custom documentation sections, instructions, tool declarations and text-block metadata. Leave unrecognized or fragmented documentation unchanged.
