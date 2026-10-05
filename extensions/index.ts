@@ -1,0 +1,95 @@
+import { anthropicMessagesApi } from "@earendil-works/pi-ai/compat";
+import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
+import { readClaudeCodeVersion } from "../src/claude-code.ts";
+import { parseLimitHeaders, type Limits } from "../src/limits.ts";
+import { mentionsPi, piDocsSection } from "../src/pi-docs.ts";
+import { createProviderStream, isSubscriptionToken } from "../src/provider.ts";
+import { createRateLimits } from "../src/rate-limit.ts";
+import { footer, READY, type Footer } from "../src/status.ts";
+import { fetchUsage } from "../src/usage.ts";
+
+const STATUS_KEY = "claude-pro";
+const DOCS_MESSAGE = "claude-pro-pi-docs";
+
+async function usesSubscription(ctx: ExtensionContext): Promise<boolean> {
+  const model = ctx.model;
+  if (model?.provider !== "anthropic") return false;
+  if (ctx.modelRegistry.isUsingOAuth(model)) return true;
+  const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+  return auth.ok && isSubscriptionToken(auth.apiKey);
+}
+
+export default function claudePro(pi: ExtensionAPI): void {
+  let version: string | undefined;
+  let ctx: ExtensionContext | undefined;
+
+  function show(status: Footer | undefined): void {
+    if (!ctx?.hasUI) return;
+    ctx.ui.setStatus(
+      STATUS_KEY,
+      status && ctx.ui.theme.fg(status.level, status.text),
+    );
+  }
+
+  function showLimits(limits: Limits): void {
+    show(footer(limits));
+  }
+
+  async function showReady(current: ExtensionContext): Promise<void> {
+    ctx = current;
+    show((await usesSubscription(current)) ? READY : undefined);
+  }
+
+  pi.registerProvider("anthropic", {
+    api: "anthropic-messages",
+    streamSimple: createProviderStream({
+      stream: anthropicMessagesApi().streamSimple,
+      claudeCodeVersion: () => (version ??= readClaudeCodeVersion()),
+      contextWindows: new Map(
+        getBuiltinModels("anthropic").map((model) => [
+          model.id,
+          model.contextWindow,
+        ]),
+      ),
+      watchRequest: createRateLimits({ fetchUsage, onLimits: showLimits }),
+    }),
+  });
+
+  pi.on("session_start", (_event, current) => showReady(current));
+  pi.on("model_select", (_event, current) => showReady(current));
+
+  pi.on("after_provider_response", async (event, current) => {
+    ctx = current;
+    if (!(await usesSubscription(current))) return;
+    const limits = parseLimitHeaders(event.headers, event.status);
+    if (limits) showLimits(limits);
+  });
+
+  // The provider removes Pi's documentation from the system prompt. Give it
+  // back as a hidden message, once per branch, when the user asks about Pi.
+  pi.on("before_agent_start", async (event, current) => {
+    if (!mentionsPi(event.prompt) || !(await usesSubscription(current))) return;
+    const docs = piDocsSection(event.systemPrompt);
+    if (!docs) return;
+    const alreadySent = current.sessionManager
+      .getBranch()
+      .some(
+        (entry) =>
+          entry.type === "custom_message" && entry.customType === DOCS_MESSAGE,
+      );
+    if (alreadySent) return;
+    return {
+      message: { customType: DOCS_MESSAGE, content: docs, display: false },
+    };
+  });
+
+  pi.on("session_shutdown", (_event, current) => {
+    ctx = current;
+    show(undefined);
+    ctx = undefined;
+  });
+}

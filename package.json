@@ -1,0 +1,51 @@
+{
+  "name": "pi-claude-pro",
+  "version": "1.0.0",
+  "description": "Use your Claude Pro or Max subscription in Pi.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Hugo Lopes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HugoLopes45/pi-claude-pro.git"
+  },
+  "homepage": "https://github.com/HugoLopes45/pi-claude-pro#readme",
+  "bugs": {
+    "url": "https://github.com/HugoLopes45/pi-claude-pro/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi",
+    "claude",
+    "claude-pro",
+    "claude-max",
+    "anthropic"
+  ],
+  "files": [
+    "extensions",
+    "src",
+    "CHANGELOG.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ]
+  },
+  "scripts": {
+    "check": "tsc --noEmit && vitest --run",
+    "test": "vitest --run",
+    "prepublishOnly": "npm run check"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^1.0.3",
+    "@earendil-works/pi-coding-agent": "^1.0.3",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.11"
+  }
+}
