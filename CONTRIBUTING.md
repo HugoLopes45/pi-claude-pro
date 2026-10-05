@@ -13,6 +13,9 @@ npm run check
 
 `npm run check` runs TypeScript and the offline tests. The tests use a simulated Anthropic server, not your account.
 
+CI also installs the latest published Pi packages on Node 24 and reruns these checks. It runs weekly, even without repository changes.
+Keep the lockfile baseline reproducible; do not replace it with an unbounded dependency tree. Host-provided peer dependencies stay `*`.
+
 For an optional manual test in Pi:
 
 ```bash

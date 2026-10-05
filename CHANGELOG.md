@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Check the latest published Pi packages in CI and weekly, alongside the reproducible lockfile baseline.
 - Document contribution and private vulnerability reporting, and add a focused bug-report form.
 - Add CI on Node 22 and 24, release pull-request tooling, and npm trusted-publishing automation.
 - Recognize Anthropic's HTTP 400 extra-usage exhaustion response without consuming its body or retrying the rejected request.

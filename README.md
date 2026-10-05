@@ -27,7 +27,7 @@ Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom
 
 ## Requirements
 
-- Pi 1.x. The tests run against Pi 1.0.3.
+- Pi. CI checks the lockfile baseline and the latest published Pi packages; see the compatibility policy below.
 - A Claude Pro or Max subscription.
 
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version. Otherwise it sends the bundled version, 2.1.289.
@@ -84,7 +84,7 @@ The footer shows **Claude Pro** when the extension is active.
 
 - **Unofficial.** Anthropic does not support this package. Using a subscription outside Claude Code can break the Anthropic Consumer Terms. You accept this risk.
 - **Server contract.** The request is valid only while Anthropic accepts the Claude Code identity that this package sends: headers, billing block and its checksum. Anthropic does not publish this contract and can change it at any time. The offline tests cannot detect such a change. Run `npm run check:live` to test the current contract.
-- **Pi versions.** The `peerDependencies` range is `*`, because Pi requires it for the packages that it provides. The tests cover the Pi version in `devDependencies`.
+- **Pi versions.** Host-provided packages use `peerDependencies: "*"`; the extension does not bundle or enforce a specific Pi version. The lockfile gives reproducible baseline tests. CI also installs the latest published Pi packages on Node 24 and reruns all checks, on pull requests and weekly. A passing check establishes compatibility with those versions, not unknown future API changes.
 
 ## Development
 
