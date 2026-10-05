@@ -8,6 +8,7 @@ import {
   ModelRuntime,
   SessionManager,
   SettingsManager,
+  type ExtensionAPI,
 } from "@earendil-works/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -60,6 +61,7 @@ const REPLY = sse([
 async function runPrompt(
   response: (url: string) => Response,
   prompts = ["Reply with exactly: OK"],
+  extensionFactories: ((pi: ExtensionAPI) => void)[] = [],
 ): Promise<{ sent: Sent[]; text: string }> {
   const sent: Sent[] = [];
   vi.stubGlobal(
@@ -101,6 +103,7 @@ async function runPrompt(
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
+    extensionFactories,
     additionalExtensionPaths: [
       resolve(import.meta.dirname, "../extensions/index.ts"),
     ],
@@ -246,6 +249,37 @@ describe("inside Pi", () => {
     expect(usage[0]?.headers.get("authorization")).toBe(`Bearer ${TOKEN}`);
     expect(usage[0]?.headers.get("anthropic-beta")).toBe("oauth-2025-04-20");
     expect(messageRequests(sent)).toHaveLength(1);
+  });
+
+  it("preserves a replacement prompt while moving only Pi documentation", async () => {
+    const custom =
+      "<docs>Project documentation</docs>\nKeep custom instructions.";
+    const { sent } = await runPrompt(
+      () =>
+        new Response(REPLY, {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ["hello", "next"],
+      [
+        (pi) => {
+          pi.on("before_agent_start", (event) => ({
+            systemPrompt: `${event.systemPrompt}\n${custom}`,
+          }));
+        },
+      ],
+    );
+    expect(sent).toHaveLength(2);
+    for (const request of sent) {
+      const system = request.body.system.map((block) => block.text).join("\n");
+      expect(system).not.toContain("Pi documentation");
+      expect(system).toContain(custom);
+      expect(system).toContain("operating inside pi");
+      expect(
+        JSON.stringify(request.body.messages).split(
+          "Pi documentation (read only",
+        ),
+      ).toHaveLength(2);
+    }
   });
 
   it("moves Pi's docs into the first user message of every request", async () => {

@@ -127,11 +127,18 @@ describe("createProviderStream", () => {
       headers: { "x-app": "pi" },
       fetch: piFetch(200),
     };
-    const result = await createProviderStream(deps({ stream: adapter.stream }))(
-      model,
-      context,
-      options,
-    ).result();
+    const original = normalizeContext({
+      systemPrompt: "<docs>\nPi documentation\n</docs>\nCustom rules",
+      messages: [{ role: "user", content: "hello", timestamp: 0 }],
+    });
+    const result = await createProviderStream(
+      deps({
+        stream: (m, sentContext, sentOptions) => {
+          expect(sentContext).toBe(original);
+          return adapter.stream(m, sentContext, sentOptions);
+        },
+      }),
+    )(model, original, options).result();
     expect(result.stopReason).toBe("stop");
     expect(adapter.calls[0]).toEqual({ model, options });
   });

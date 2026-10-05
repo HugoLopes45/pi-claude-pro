@@ -18,6 +18,12 @@ When the Anthropic model uses a subscription token, the extension:
 
 Requests that use an Anthropic API key are not changed.
 
+### Compatibility with other extensions
+
+The adapter accepts structured Pi prompts and complete text prompts returned by other extensions. It does not require a specific extension configuration.
+
+Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom documentation, instructions, tools and skills remain unchanged. Unrecognized or fragmented documentation stays in place.
+
 ## Requirements
 
 - Pi 1.x. The tests run against Pi 1.0.3.

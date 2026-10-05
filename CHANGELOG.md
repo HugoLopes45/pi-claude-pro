@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Recognize Anthropic's HTTP 400 extra-usage exhaustion response without consuming its body or retrying the rejected request.
+- Handle Pi documentation in both structured system prompts and text prompts replaced by other extensions, without configuration-specific hooks.
+- Preserve custom documentation sections, instructions, tool declarations and text-block metadata. Leave unrecognized or fragmented documentation unchanged.
+- Test replacement prompts across multiple turns and keep API-key requests unchanged.
 
 ## 1.1.0
 
