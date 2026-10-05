@@ -9,6 +9,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { billingHeader, clientHeaders } from "./claude-code.ts";
 import { firstUserText, rewriteSystem } from "./payload.ts";
+import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
 import { errorText } from "./util.ts";
 
@@ -88,6 +89,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
       accessToken,
       headers,
       signal: options.signal,
+      modelId: model.id,
     });
 
     const inner = deps.stream(
@@ -95,7 +97,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
         ...model,
         contextWindow: deps.contextWindows.get(model.id) ?? model.contextWindow,
       },
-      context,
+      movePiDocs(context),
       {
         ...options,
         headers,

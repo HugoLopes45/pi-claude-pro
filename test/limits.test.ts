@@ -67,13 +67,22 @@ describe("parseLimitHeaders", () => {
   });
 });
 
+const OPUS = "claude-opus-4-1";
+const SONNET = "claude-sonnet-4-5";
+
 describe("parseUsageBody", () => {
   it("does not count disabled extra usage as exhausted", () => {
-    const limits = parseUsageBody({
-      five_hour: { utilization: 35, resets_at: "2026-01-01T10:00:00Z" },
-      seven_day: { utilization: 12, resets_at: null },
-      extra_usage: { is_enabled: false, disabled_reason: "org_level_disabled" },
-    });
+    const limits = parseUsageBody(
+      {
+        five_hour: { utilization: 35, resets_at: "2026-01-01T10:00:00Z" },
+        seven_day: { utilization: 12, resets_at: null },
+        extra_usage: {
+          is_enabled: false,
+          disabled_reason: "org_level_disabled",
+        },
+      },
+      SONNET,
+    );
     expect(limits).toEqual({
       exhausted: false,
       extraUsage: false,
@@ -90,29 +99,34 @@ describe("parseUsageBody", () => {
     });
   });
 
-  it("reports a spent model-specific weekly limit", () => {
-    const limits = parseUsageBody({
+  it("reports a spent model-specific weekly limit for that model only", () => {
+    const body = {
       five_hour: { utilization: 20 },
       seven_day_opus: { utilization: 100, resets_at: "2026-01-05T00:00:00Z" },
-    });
-    expect(limits).toMatchObject({
+    };
+    expect(parseUsageBody(body, OPUS)).toMatchObject({
       exhausted: true,
       claim: "seven_day_opus",
       resetsAt: Date.parse("2026-01-05T00:00:00Z") / 1000,
     });
+    expect(parseUsageBody(body, SONNET)).toMatchObject({
+      exhausted: false,
+      claim: undefined,
+    });
   });
 
   it("reports a locked limit below 100%", () => {
-    const limits = parseUsageBody({
-      seven_day: { utilization: 60, locked_reason: "abuse" },
-    });
+    const limits = parseUsageBody(
+      { seven_day: { utilization: 60, locked_reason: "abuse" } },
+      SONNET,
+    );
     expect(limits).toMatchObject({ exhausted: true, claim: "seven_day" });
   });
 
   it("rejects bodies without usable limits", () => {
-    expect(parseUsageBody(null)).toBeUndefined();
+    expect(parseUsageBody(null, SONNET)).toBeUndefined();
     expect(
-      parseUsageBody({ five_hour: { utilization: "high" } }),
+      parseUsageBody({ five_hour: { utilization: "high" } }, SONNET),
     ).toBeUndefined();
   });
 });

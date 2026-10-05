@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Claude Code is optional. Without it, the extension uses the bundled Claude Code version 2.1.289.
+- Move Pi's documentation section from the system prompt to the first user message of every request. This replaces the keyword match on "pi", which missed questions about the agent and matched unrelated text.
+- Cache the usage lookup per access token, so a new login never sees the usage of the previous one.
+- Count a spent Opus or Sonnet weekly limit only for requests to that model.
+- Run the offline tests with Pi retries on, and prove that a transient 429 is retried and a spent limit is not.
+- Add `npm run check:live`, which sends one real request and checks that Anthropic bills it to the subscription.
+
 ## 1.0.1
 
 - Set the package author to HugoLopes45.

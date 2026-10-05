@@ -7,6 +7,11 @@ const USAGE_CLAIMS = [
   "seven_day_opus",
   "seven_day_sonnet",
 ];
+/** Weekly limits that apply only to one model family. */
+const MODEL_CLAIMS: Record<string, string> = {
+  seven_day_opus: "opus",
+  seven_day_sonnet: "sonnet",
+};
 const WINDOW_NAMES: Record<string, UsageWindow["name"]> = {
   five_hour: "5h",
   seven_day: "7d",
@@ -73,10 +78,21 @@ export function parseLimitHeaders(
   };
 }
 
-/** Converts the body of `GET /api/oauth/usage`, where utilization is a percentage. */
-export function parseUsageBody(body: unknown): Limits | undefined {
+/**
+ * Converts the body of `GET /api/oauth/usage`, where utilization is a
+ * percentage. Model-specific limits count only for the model of the request.
+ */
+export function parseUsageBody(
+  body: unknown,
+  modelId: string,
+): Limits | undefined {
   if (!isRecord(body)) return undefined;
-  const entries = USAGE_CLAIMS.flatMap((claim) => {
+  const model = modelId.toLowerCase();
+  const claims = USAGE_CLAIMS.filter((claim) => {
+    const family = MODEL_CLAIMS[claim];
+    return family === undefined || model.includes(family);
+  });
+  const entries = claims.flatMap((claim) => {
     const item = body[claim];
     if (!isRecord(item)) return [];
     const { utilization, resets_at, locked_reason } = item;

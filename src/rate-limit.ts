@@ -1,5 +1,5 @@
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
-import { parseLimitHeaders, type Limits } from "./limits.ts";
+import { parseLimitHeaders, parseUsageBody, type Limits } from "./limits.ts";
 import { exhaustedMessage } from "./status.ts";
 import { errorText } from "./util.ts";
 
@@ -9,10 +9,12 @@ export interface RequestAuth {
   accessToken: string;
   headers: ProviderHeaders;
   signal: AbortSignal | undefined;
+  modelId: string;
 }
 
 export interface RateLimitDeps {
-  fetchUsage: (auth: RequestAuth) => Promise<Limits | undefined>;
+  /** Returns the raw body of the usage endpoint. */
+  fetchUsage: (auth: RequestAuth) => Promise<unknown>;
   onLimits: (limits: Limits) => void;
   now?: () => number;
 }
@@ -27,13 +29,17 @@ export function createRateLimits(
   deps: RateLimitDeps,
 ): (auth: RequestAuth) => RequestWatch {
   const now = deps.now ?? Date.now;
-  let cache: { at: number; limits: Limits | undefined } | undefined;
+  let cache: { accessToken: string; at: number; body: unknown } | undefined;
 
   async function usage(auth: RequestAuth): Promise<Limits | undefined> {
-    if (cache && now() - cache.at < USAGE_CACHE_MS) return cache.limits;
-    const limits = await deps.fetchUsage(auth);
-    cache = { at: now(), limits };
-    return limits;
+    if (
+      cache?.accessToken !== auth.accessToken ||
+      now() - cache.at >= USAGE_CACHE_MS
+    ) {
+      const body = await deps.fetchUsage(auth);
+      cache = { accessToken: auth.accessToken, at: now(), body };
+    }
+    return parseUsageBody(cache.body, auth.modelId);
   }
 
   return (auth) => {

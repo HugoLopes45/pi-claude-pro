@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Limits } from "../src/limits.ts";
-import { createRateLimits, type RateLimitDeps } from "../src/rate-limit.ts";
+import {
+  createRateLimits,
+  type RateLimitDeps,
+  type RequestAuth,
+} from "../src/rate-limit.ts";
 
-const auth = {
+const auth: RequestAuth = {
   accessToken: "sk-ant-oat01-test",
   headers: { "x-app": "cli" },
   signal: undefined,
+  modelId: "claude-sonnet-4-5",
 };
-const spent: Limits = {
-  exhausted: true,
-  extraUsage: false,
-  claim: "five_hour",
-  windows: [],
-};
+const spentBody = { five_hour: { utilization: 100 } };
+const freeBody = { five_hour: { utilization: 20 } };
 
 function watcher(overrides: Partial<RateLimitDeps>) {
   return createRateLimits({
@@ -29,7 +29,7 @@ function reply(status: number, headers: Record<string, string> = {}): Response {
 
 describe("createRateLimits", () => {
   it("leaves successful responses alone", async () => {
-    const fetchUsage = vi.fn(async () => spent);
+    const fetchUsage = vi.fn(async () => spentBody);
     const watch = watcher({ fetchUsage })(auth);
     const response = reply(200);
     expect(await watch.inspect(response)).toBe(response);
@@ -58,7 +58,7 @@ describe("createRateLimits", () => {
   });
 
   it("asks the usage endpoint when the 429 headers are not conclusive, and caches it", async () => {
-    const fetchUsage = vi.fn(async () => spent);
+    const fetchUsage = vi.fn(async () => spentBody);
     let time = 0;
     const watchRequest = watcher({ fetchUsage, now: () => time });
 
@@ -74,14 +74,41 @@ describe("createRateLimits", () => {
     expect(fetchUsage).toHaveBeenCalledWith(auth);
   });
 
+  it("does not reuse the cached usage of another account", async () => {
+    const other = { ...auth, accessToken: "sk-ant-oat01-other" };
+    const fetchUsage = vi.fn(async ({ accessToken }: RequestAuth) =>
+      accessToken === auth.accessToken ? spentBody : freeBody,
+    );
+    const watchRequest = watcher({ fetchUsage });
+
+    await watchRequest(auth).inspect(reply(429));
+    const watch = watchRequest(other);
+    const response = await watch.inspect(reply(429));
+
+    expect(fetchUsage).toHaveBeenLastCalledWith(other);
+    expect(response.headers.get("x-should-retry")).toBeNull();
+    expect(watch.explain("429 rate_limit_error")).toBe("429 rate_limit_error");
+  });
+
+  it("judges the cached usage against the model of each request", async () => {
+    const fetchUsage = vi.fn(async () => ({
+      five_hour: { utilization: 20 },
+      seven_day_opus: { utilization: 100 },
+    }));
+    const watchRequest = watcher({ fetchUsage });
+
+    const opus = watchRequest({ ...auth, modelId: "claude-opus-4-1" });
+    await opus.inspect(reply(429));
+    const sonnet = watchRequest(auth);
+    await sonnet.inspect(reply(429));
+
+    expect(fetchUsage).toHaveBeenCalledTimes(1);
+    expect(opus.explain("429")).toBe("Claude weekly Opus limit reached");
+    expect(sonnet.explain("429")).toBe("429");
+  });
+
   it("keeps a transient 429 retryable", async () => {
-    const watch = watcher({
-      fetchUsage: async () => ({
-        ...spent,
-        exhausted: false,
-        claim: undefined,
-      }),
-    })(auth);
+    const watch = watcher({ fetchUsage: async () => freeBody })(auth);
     const response = await watch.inspect(reply(429));
     expect(response.headers.get("x-should-retry")).toBeNull();
     expect(watch.explain("429 rate_limit_error")).toBe("429 rate_limit_error");
@@ -100,7 +127,7 @@ describe("createRateLimits", () => {
   });
 
   it("forgets a 429 once a later attempt gets through", async () => {
-    const watch = watcher({ fetchUsage: async () => spent })(auth);
+    const watch = watcher({ fetchUsage: async () => spentBody })(auth);
     await watch.inspect(reply(429));
     await watch.inspect(reply(200));
     expect(watch.explain("stream ended")).toBe("stream ended");

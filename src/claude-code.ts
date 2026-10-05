@@ -6,12 +6,19 @@ import type { ProviderHeaders } from "@earendil-works/pi-ai";
 const BILLING_SALT = "59cf53e54c78";
 const SAMPLED_INDEXES = [4, 7, 20];
 const ENTRYPOINT = "pi";
+/** The latest Claude Code version this package was tested with. */
+export const BUNDLED_CLAUDE_CODE_VERSION = "2.1.289";
 const REPLACED_HEADERS = new Set([
   "user-agent",
   "x-app",
   "x-claude-code-session-id",
 ]);
 
+function isMissingCommand(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+/** The installed Claude Code version, or the bundled one without Claude Code. */
 export function readClaudeCodeVersion(): string {
   let output: string;
   try {
@@ -21,8 +28,9 @@ export function readClaudeCodeVersion(): string {
       timeout: 5_000,
     });
   } catch (error) {
+    if (isMissingCommand(error)) return BUNDLED_CLAUDE_CODE_VERSION;
     throw new Error(
-      "pi-claude-pro needs Claude Code. Install it and check that `claude --version` works.",
+      "pi-claude-pro cannot run `claude --version`. Repair or uninstall Claude Code.",
       { cause: error },
     );
   }

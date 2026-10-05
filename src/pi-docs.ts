@@ -1,20 +1,46 @@
-const DOCS_SECTION = /<docs>\nPi documentation[\s\S]*?\n<\/docs>/;
+import {
+  getCurrentSystemMessage,
+  normalizeContext,
+  type Message,
+  type TranscriptContext,
+} from "@earendil-works/pi-ai";
 
-/** Returns the Pi documentation section of a system prompt, without its tags. */
-export function piDocsSection(systemPrompt: string): string | undefined {
-  const match = DOCS_SECTION.exec(systemPrompt)?.[0];
-  return match?.slice("<docs>\n".length, -"\n</docs>".length);
+/** Name of the system prompt section where Pi lists its documentation. */
+const DOCS_SECTION = "docs";
+
+function hasDocs(message: Message): boolean {
+  return message.role === "system" && DOCS_SECTION in (message.sections ?? {});
 }
 
-export function removePiDocs(text: string): string {
-  const match = DOCS_SECTION.exec(text);
-  if (!match) return text;
-  const before = text.slice(0, match.index).trimEnd();
-  const after = text.slice(match.index + match[0].length).trimStart();
-  return [before, after].filter(Boolean).join("\n\n");
-}
-
-/** True when a prompt is likely about Pi itself, so the model needs Pi's docs. */
-export function mentionsPi(prompt: string): boolean {
-  return /\bpi\b/i.test(prompt);
+/**
+ * Moves Pi's documentation section from the system prompt to the start of the
+ * first user message. The model keeps the docs; the system prompt loses them.
+ */
+export function movePiDocs(context: TranscriptContext): TranscriptContext {
+  if (!context.messages.some(hasDocs)) return context;
+  const docs = getCurrentSystemMessage(context.messages)?.sections?.[
+    DOCS_SECTION
+  ];
+  let firstUser = true;
+  const messages = context.messages.map((message): Message => {
+    if (message.role === "system" && hasDocs(message)) {
+      const sections = Object.entries(message.sections ?? {}).filter(
+        ([name]) => name !== DOCS_SECTION,
+      );
+      return { ...message, sections: Object.fromEntries(sections) };
+    }
+    if (message.role !== "user" || !firstUser || !docs) return message;
+    firstUser = false;
+    const content =
+      typeof message.content === "string"
+        ? message.content
+          ? [{ type: "text" as const, text: message.content }]
+          : []
+        : message.content;
+    return {
+      ...message,
+      content: [{ type: "text", text: docs }, ...content],
+    };
+  });
+  return normalizeContext({ messages });
 }

@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest";
 import { firstUserText, rewriteSystem } from "../src/payload.ts";
 
 const IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude.";
-const DOCS =
-  "<docs>\nPi documentation (read only when the user asks about pi itself):\n- Main documentation: /x/README.md\n</docs>";
-const PROMPT = `You are an expert coding assistant.\n\n${DOCS}\n\n<cwd>\n/tmp\n</cwd>`;
+const PROMPT = "You are an expert coding assistant.\n\n<cwd>\n/tmp\n</cwd>";
 const cache = { type: "ephemeral" };
 
 describe("rewriteSystem", () => {
-  it("puts billing first, drops the identity line and removes Pi docs", () => {
+  it("puts billing first and drops the identity line", () => {
     const payload = {
       model: "m",
       system: [
@@ -22,7 +20,7 @@ describe("rewriteSystem", () => {
         { type: "text", text: "BILLING" },
         {
           type: "text",
-          text: "You are an expert coding assistant.\n\n<cwd>\n/tmp\n</cwd>",
+          text: PROMPT,
           cache_control: cache,
         },
       ],
@@ -40,7 +38,7 @@ describe("rewriteSystem", () => {
         { type: "text", text: "x-anthropic-billing-header: b;" },
         {
           type: "text",
-          text: "You are an expert coding assistant.\n\n<cwd>\n/tmp\n</cwd>",
+          text: PROMPT,
         },
       ],
     });

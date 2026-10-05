@@ -1,4 +1,3 @@
-import { parseUsageBody, type Limits } from "./limits.ts";
 import type { RequestAuth } from "./rate-limit.ts";
 
 const USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
@@ -8,7 +7,7 @@ export async function fetchUsage({
   accessToken,
   headers,
   signal,
-}: RequestAuth): Promise<Limits | undefined> {
+}: RequestAuth): Promise<unknown> {
   const sent = Object.fromEntries(
     Object.entries(headers).filter(
       (entry): entry is [string, string] => entry[1] !== null,
@@ -26,5 +25,5 @@ export async function fetchUsage({
   if (!response.ok) {
     throw new Error(`usage endpoint returned HTTP ${response.status}`);
   }
-  return parseUsageBody(await response.json());
+  return response.json();
 }
