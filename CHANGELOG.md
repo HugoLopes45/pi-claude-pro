@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Set the package author to HugoLopes45.
+
 ## 1.0.0
 
 - Send Claude Pro and Max subscription requests from Pi as Claude Code requests.

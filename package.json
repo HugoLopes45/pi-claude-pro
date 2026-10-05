@@ -1,10 +1,10 @@
 {
   "name": "pi-claude-pro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use your Claude Pro or Max subscription in Pi.",
   "type": "module",
   "license": "MIT",
-  "author": "Hugo Lopes",
+  "author": "HugoLopes45 (https://github.com/HugoLopes45)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/HugoLopes45/pi-claude-pro.git"
@@ -35,7 +35,7 @@
   "scripts": {
     "check": "tsc --noEmit && vitest --run",
     "test": "vitest --run",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
