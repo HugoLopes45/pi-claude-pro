@@ -2,15 +2,18 @@
 
 ## Unreleased
 
+- Publish only validated version increases on main; check manifest consistency, release notes, and retry source identity before publication.
+- Preserve an empty Unreleased section when preparing a release and reject duplicate versions and malformed registry responses.
 - Check the latest published Pi packages in CI and weekly, alongside the reproducible lockfile baseline.
 - Document contribution and private vulnerability reporting, and add a focused bug-report form.
+
+## 1.1.0
+
 - Add CI on Node 22 and 24, release pull-request tooling, and npm trusted-publishing automation.
 - Recognize Anthropic's HTTP 400 extra-usage exhaustion response without consuming its body or retrying the rejected request.
 - Handle Pi documentation in both structured system prompts and text prompts replaced by other extensions, without configuration-specific hooks.
 - Preserve custom documentation sections, instructions, tool declarations and text-block metadata. Leave unrecognized or fragmented documentation unchanged.
 - Test replacement prompts across multiple turns and keep API-key requests unchanged.
-
-## 1.1.0
 
 - Claude Code is optional. Without it, the extension uses the bundled Claude Code version 2.1.289.
 - Move Pi's documentation section from the system prompt to the first user message of every request. This replaces the keyword match on "pi", which missed questions about the agent and matched unrelated text.
