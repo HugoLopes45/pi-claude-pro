@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const git = vi.hoisted(() =>
+  vi.fn<(command: string, args: string[]) => string>(),
+);
+vi.mock("node:child_process", () => ({ execFileSync: git }));
 import {
   isPublished,
   nextVersion,
@@ -6,6 +11,7 @@ import {
   stampUnreleased,
   validateRelease,
   releasePlan,
+  publicationTarget,
 } from "../scripts/release.ts";
 
 const changelog = `# Changelog
@@ -159,6 +165,63 @@ describe("releasePlan", () => {
         changelog,
       ),
     ).toThrow("newer than");
+  });
+});
+
+describe("publicationTarget", () => {
+  const commit = "a".repeat(40);
+  beforeEach(() => {
+    git.mockReset();
+    git.mockImplementation((command, args) => {
+      if (command !== "git") throw new Error("Unexpected external command");
+      if (args[0] === "rev-parse") return commit;
+      if (args[0] === "merge-base") return "";
+      if (args[1] === `${commit}:package.json`) return JSON.stringify(manifest);
+      if (args[1] === `${commit}:package-lock.json`)
+        return JSON.stringify(lockfile);
+      if (args[1] === `${commit}:CHANGELOG.md`) return changelog;
+      throw new Error("Unexpected Git operation");
+    });
+  });
+
+  it("selects the commit and metadata from the explicit tag", () => {
+    expect(publicationTarget("v0.2.0")).toEqual({ version: "0.2.0", commit });
+    expect(git).toHaveBeenCalledWith(
+      "git",
+      ["rev-parse", "--verify", "refs/tags/v0.2.0^{commit}"],
+      expect.any(Object),
+    );
+    expect(git).toHaveBeenCalledWith(
+      "git",
+      ["merge-base", "--is-ancestor", commit, "origin/main"],
+      expect.any(Object),
+    );
+  });
+
+  it.each(["main", "", "0.2.0", "v01.2.0", "v0.2.0~1", "v0.2.0-beta.1"])(
+    "rejects a non-release tag before Git lookup: %s",
+    (tag) => {
+      expect(() => publicationTarget(tag)).toThrow("tag");
+      expect(git).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a tag that does not match the package version", () => {
+    expect(() => publicationTarget("v0.3.0")).toThrow("version");
+  });
+
+  it("fails when the tag does not exist", () => {
+    git.mockImplementationOnce(() => {
+      throw new Error("Unknown tag");
+    });
+    expect(() => publicationTarget("v0.2.0")).toThrow("Unknown tag");
+  });
+
+  it("fails when the tagged commit is outside main", () => {
+    git.mockReturnValueOnce(commit).mockImplementationOnce(() => {
+      throw new Error("Not an ancestor");
+    });
+    expect(() => publicationTarget("v0.2.0")).toThrow("Not an ancestor");
   });
 });
 

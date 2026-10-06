@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Publish only validated version increases on main; check manifest consistency, release notes, and retry source identity before publication.
+- Publish only through an owner-approved manual workflow targeting an immutable release tag, with matching metadata and successful CI on its exact main commit.
 - Preserve an empty Unreleased section when preparing a release and reject duplicate versions and malformed registry responses.
 - Check the latest published Pi packages in CI and weekly, alongside the reproducible lockfile baseline.
 - Document contribution and private vulnerability reporting, and add a focused bug-report form.

@@ -141,6 +141,31 @@ function run(command: string, args: string[]): string {
   }).trim();
 }
 
+export function publicationTarget(tag: string): {
+  version: string;
+  commit: string;
+} {
+  if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag))
+    throw new Error("Expected a release tag vX.Y.Z.");
+  const commit = run("git", [
+    "rev-parse",
+    "--verify",
+    `refs/tags/${tag}^{commit}`,
+  ]);
+  run("git", ["merge-base", "--is-ancestor", commit, "origin/main"]);
+  const manifest: unknown = JSON.parse(
+    run("git", ["show", `${commit}:package.json`]),
+  );
+  const lockfile: unknown = JSON.parse(
+    run("git", ["show", `${commit}:package-lock.json`]),
+  );
+  const changelog = run("git", ["show", `${commit}:CHANGELOG.md`]);
+  const { version } = validateRelease(manifest, lockfile, changelog);
+  if (tag !== `v${version}`)
+    throw new Error("Release tag and package version must match.");
+  return { version, commit };
+}
+
 function prepare(request: string): void {
   if (run("git", ["branch", "--show-current"]) !== "main")
     throw new Error("Run the release from main.");
@@ -182,7 +207,7 @@ function prepare(request: string): void {
     "--title",
     `Release ${version}`,
     "--body",
-    `${releaseNotes(changelog, version)}\n\nMerging publishes ${version} to npm and creates the GitHub release.`,
+    `${releaseNotes(changelog, version)}\n\nMerging only prepares ${version}. The owner must tag the tested main commit and manually run Publish release to publish it.`,
     "--assignee",
     "@me",
   ]);
@@ -212,30 +237,26 @@ async function main(args: string[]): Promise<void> {
   const [command, ...rest] = args;
   if (rest.some((argument) => argument === ""))
     throw new Error("Release arguments must not be empty.");
-  switch (command) {
-    case "prepare":
-      if (rest.length === 1) return prepare(rest[0]);
-      break;
-    case "notes":
-      if (rest.length === 1) {
-        console.log(
-          releaseNotes(readFileSync("CHANGELOG.md", "utf8"), rest[0]),
-        );
-        return;
-      }
-      break;
-    case "published":
-      if (rest.length === 3) {
-        console.log(await isPublished(rest[0], rest[1], rest[2]));
-        return;
-      }
-      break;
-    case "check":
-      if (rest.length <= 1) return check(rest[0]);
-      break;
+  switch (`${command}/${rest.length}`) {
+    case "prepare/1":
+      return prepare(rest[0]);
+    case "notes/1":
+      console.log(releaseNotes(readFileSync("CHANGELOG.md", "utf8"), rest[0]));
+      return;
+    case "published/3":
+      console.log(await isPublished(rest[0], rest[1], rest[2]));
+      return;
+    case "check/0":
+    case "check/1":
+      return check(rest[0]);
+    case "target/1": {
+      const target = publicationTarget(rest[0]);
+      console.log(`version=${target.version}\ncommit=${target.commit}`);
+      return;
+    }
   }
   throw new Error(
-    "Usage: release.ts prepare <patch|minor|major|x.y.z> | notes <x.y.z> | published <name> <x.y.z> <commit> | check [base-commit]",
+    "Usage: release.ts prepare <patch|minor|major|x.y.z> | notes <x.y.z> | published <name> <x.y.z> <commit> | check [base-commit] | target <vX.Y.Z>",
   );
 }
 
