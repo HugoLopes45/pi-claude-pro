@@ -112,8 +112,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and pull requests. Repor
 
 1. Open a pull request. CI runs `npm run check` on Node 22 and 24.
 2. Add user-visible changes under `## Unreleased` in `CHANGELOG.md`.
-3. To release, run `npm run release -- <patch|minor|major|x.y.z>` from an up-to-date, clean `main`. The script names the `Unreleased` section after the version, updates `package.json`, runs the checks, and opens a release pull request.
-4. Merge the release pull request. The `Release` workflow publishes the package to npm with provenance and creates the GitHub release from the CHANGELOG section.
+3. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes.
+4. Run `npm run release -- <patch|minor|major|x.y.z>` from an up-to-date, clean `main`. This opens a release PR with matching package and lockfile versions, versioned notes, and an empty `Unreleased` section.
+5. Merge after CI succeeds. Only a version increase on `main` triggers publication, not dependency or documentation changes alone.
+
+CI checks version progression, matching manifest metadata, and release notes before publication. The release job tests the exact merged commit, publishes through npm OIDC, and creates its GitHub tag and release.
+
+If publication fails, fix the cause and use **Re-run failed jobs** on that run. A retry uses the same commit. An existing npm version or tag must match that commit; mismatches fail instead of overwriting a release. npm can take time to make an accepted publication visible.
 
 The workflow publishes through npm trusted publishing, so the repository stores no npm token. Before the first release, configure the package's npm trusted publisher for this repository, `release.yml`, and the GitHub environment `npm`.
 

@@ -1,11 +1,9 @@
 name: Release
 
-# Publishes the version in package.json when npm does not have it, then creates its GitHub release.
-# npm authenticates this workflow through trusted publishing (OIDC), so no token is stored.
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+    paths: [package.json]
 
 permissions:
   contents: read
@@ -24,36 +22,49 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
+      - name: Validate release plan
+        id: plan
+        run: node scripts/release.ts check "$BASE_SHA" >> "$GITHUB_OUTPUT"
+        env:
+          BASE_SHA: ${{ github.event.before }}
       - run: npm ci
-      - name: Read the version
-        id: version
+        if: steps.plan.outputs.changed == 'true'
+      - run: npm run check
+        if: steps.plan.outputs.changed == 'true'
+      - name: Check existing publication
+        if: steps.plan.outputs.changed == 'true'
+        id: publication
         run: |
+          node scripts/release.ts notes "$VERSION" > "$RUNNER_TEMP/notes.md"
+          if target=$(git rev-parse --verify -q "refs/tags/v$VERSION^{commit}"); then
+            if [ "$target" != "$GITHUB_SHA" ]; then
+              echo "Tag v$VERSION points to a different commit." >&2
+              exit 1
+            fi
+          fi
           name=$(node -p 'require("./package.json").name')
-          version=$(node -p 'require("./package.json").version')
-          published=$(node scripts/release.ts published "$name" "$version")
-          released=false
-          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then released=true; fi
+          published=$(node scripts/release.ts published "$name" "$VERSION" "$GITHUB_SHA")
+          released=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"v$VERSION\" and .draft == false) | .id")
           {
-            echo "version=$version"
             echo "published=$published"
             echo "released=$released"
           } >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.plan.outputs.version }}
       - name: Publish to npm
-        if: steps.version.outputs.published == 'false'
+        if: steps.plan.outputs.changed == 'true' && steps.publication.outputs.published == 'false'
         run: npm publish
       - name: Create the GitHub release
-        if: steps.version.outputs.released == 'false'
-        run: |
-          node scripts/release.ts notes "$VERSION" > "$RUNNER_TEMP/notes.md"
-          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        if: steps.plan.outputs.changed == 'true' && steps.publication.outputs.released == ''
+        run: gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.plan.outputs.version }}
