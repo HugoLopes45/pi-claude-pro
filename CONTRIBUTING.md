@@ -53,10 +53,11 @@ Release preparation requires Node 24 or later, npm publish permission through th
 
 Follow the [release procedure](README.md#contributing-and-releases). Do not bump the package version in ordinary contribution pull requests.
 
-A version increase on `main` starts publication. Dependency or documentation changes without a version increase do not publish.
-The release PR must update both manifests and include a nonempty changelog section for the new version. CI rejects version rollback.
+Merging a release PR only prepares the version. The PR must update both manifests and include nonempty versioned release notes. CI rejects version rollback.
 
-Retry a failed release from its original Actions run. Do not move a published tag or reuse its version for different code.
+Only the repository owner can launch **Publish release** from an explicit `vX.Y.Z` tag whose commit belongs to `main`. The owner must also approve the `npm` environment deployment. Pushes and tag creation do not publish.
+
+Retry a failed release from its original Actions run and tag. Do not move any release tag or reuse its version for different code.
 If the code needs a fix, open another release PR with a new version instead.
 
 ## Security

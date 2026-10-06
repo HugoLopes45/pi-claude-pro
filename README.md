@@ -114,13 +114,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and pull requests. Repor
 2. Add user-visible changes under `## Unreleased` in `CHANGELOG.md`.
 3. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes.
 4. Run `npm run release -- <patch|minor|major|x.y.z>` from an up-to-date, clean `main`. This opens a release PR with matching package and lockfile versions, versioned notes, and an empty `Unreleased` section.
-5. Merge after CI succeeds. Only a version increase on `main` triggers publication, not dependency or documentation changes alone.
+5. Merge the release PR, then wait for CI to succeed on the exact `main` commit you want to publish.
+6. Create `vX.Y.Z` at that commit and push that tag. The tag must match the package version. Release tags cannot be moved or deleted.
+7. As the repository owner, launch **Publish release** at that tag: `gh workflow run release.yml --ref vX.Y.Z -f tag=vX.Y.Z`.
+8. Approve the `npm` environment deployment. The owner can approve their own run; no third-party approval is needed.
 
-CI checks version progression, matching manifest metadata, and release notes before publication. The release job tests the exact merged commit, publishes through npm OIDC, and creates its GitHub tag and release.
+Merges, pushes, and tag creation never publish. The manual workflow requires an existing stable-version tag, matching manifests and release notes, and successful CI on its exact commit. That commit must belong to `main`. The dispatch ref and input tag must match. Running from the tag keeps npm provenance tied to the selected commit.
 
-If publication fails, fix the cause and use **Re-run failed jobs** on that run. A retry uses the same commit. An existing npm version or tag must match that commit; mismatches fail instead of overwriting a release. npm can take time to make an accepted publication visible.
+The workflow tests and publishes that commit, not the current tip of `main`, then creates the GitHub release. A new npm publication updates the `latest` dist-tag.
 
-The workflow publishes through npm trusted publishing, so the repository stores no npm token. Before the first release, configure the package's npm trusted publisher for this repository, `release.yml`, and the GitHub environment `npm`.
+If publication fails, fix the cause and use **Re-run failed jobs** on the original run, with the same tag. An existing npm version must have the same source commit; mismatches fail instead of overwriting a release. For code changes, prepare a new version and tag. npm can take time to make an accepted publication visible.
+
+The workflow uses npm trusted publishing, so the repository stores no npm token. Configure the npm trusted publisher for this repository, `release.yml`, and the GitHub environment `npm`. Restrict that environment to tags `v*`, with the owner as its required reviewer and self-review allowed. The workflow checks that the tagged commit belongs to `main`. Protect `v*` tags from updates and deletion, with no bypass actors. Keep these repository protections enabled to preserve release identity across retries.
 
 ## License
 
