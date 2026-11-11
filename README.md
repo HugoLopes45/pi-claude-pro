@@ -43,6 +43,7 @@ Use only one extension that handles the `anthropic` provider. Remove other Claud
 | `Claude Pro`                                     | Subscription active, no usage data yet.                        |
 | `Claude 5h 42% · 7d 10%`                         | Usage of the 5-hour and weekly limits. Warning color from 80%. |
 | `Claude 7d 10%`                                  | Usage of the weekly limit, for plans without a 5-hour limit.   |
+| `Claude 5h 42% · 7d 10% · Fable 30%`             | On Fable, also the usage of the weekly Fable limit.            |
 | `Claude extra usage · resets 18:00`              | The subscription limit is spent. Requests use extra usage.     |
 | `Claude weekly limit reached · resets Sat 09:30` | The subscription refuses requests until the reset.             |
 
@@ -69,7 +70,7 @@ Use only one extension that handles the `anthropic` provider. Remove other Claud
 
 **Does it work on a plan without a 5-hour limit, such as Ultra?** Yes. When Anthropic sends no 5-hour window, the footer shows only the weekly limit.
 
-**Can I use Claude Fable in Pi?** Yes. On Max and Ultra, Fable counts against your plan, up to 50% of your weekly limit. On Pro, Anthropic bills Fable as paid usage credits. The extension sends Claude Code 2.1.322, and Fable 5.2 requires 2.1.321 or later.
+**Can I use Claude Fable in Pi?** Yes. On Max and Ultra, Fable counts against your plan, up to 50% of your weekly limit. On Pro, Anthropic bills Fable as paid usage credits. The extension sends Claude Code 2.1.322, and Fable 5.2 requires 2.1.321 or later. When you use Fable, the footer also shows the weekly Fable limit. When it is spent, switch to another model to continue on your plan.
 
 **Is it allowed by Anthropic?** It is unofficial and can break the Anthropic Consumer Terms. See [Risks and limits](#risks-and-limits).
 
@@ -80,6 +81,8 @@ Use only one extension that handles the `anthropic` provider. Remove other Claud
 **`claude_code_version_too_old`** or **`version X or newer is required`**: the retry with the version Anthropic names also failed. Update pi-claude-pro.
 
 **`Claude 5-hour limit reached`** or **`Claude weekly limit reached`**: wait for the reset time, or enable extra usage in your Claude account.
+
+**`Claude weekly Fable limit reached`**: switch to another model, such as Opus, or enable extra usage in your Claude account.
 
 **`usage lookup failed`**: Anthropic returned HTTP 429, and the usage endpoint did not answer. Pi retries the request.
 

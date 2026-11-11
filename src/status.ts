@@ -8,7 +8,7 @@ const CLAIM_LABELS: Record<string, string> = {
   seven_day: "weekly limit",
   seven_day_opus: "weekly Opus limit",
   seven_day_sonnet: "weekly Sonnet limit",
-  seven_day_overage_included: "weekly limit",
+  seven_day_overage_included: "weekly Fable limit",
   overage: "extra usage limit",
 };
 

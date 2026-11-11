@@ -2,6 +2,27 @@ import { isRetryableAssistantError } from "@earendil-works/pi-ai/compat";
 import { describe, expect, it } from "vitest";
 import { exhaustedMessage, footer, formatReset } from "../src/status.ts";
 
+function retried(errorMessage: string): boolean {
+  return isRetryableAssistantError({
+    role: "assistant" as const,
+    content: [],
+    api: "anthropic-messages",
+    provider: "anthropic",
+    model: "m",
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+    stopReason: "error" as const,
+    errorMessage,
+    timestamp: 0,
+  });
+}
+
 describe("messages", () => {
   const now = new Date(2026, 0, 1, 12, 0).getTime();
   const soon = new Date(2026, 0, 1, 17, 5).getTime() / 1000;
@@ -24,25 +45,18 @@ describe("messages", () => {
       now,
     );
     expect(text).toBe("Claude weekly limit reached · resets Sat 09:30");
-    const message = {
-      role: "assistant" as const,
-      content: [],
-      api: "anthropic-messages",
-      provider: "anthropic",
-      model: "m",
-      usage: {
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheWrite: 0,
-        totalTokens: 0,
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-      },
-      stopReason: "error" as const,
-      errorMessage: text,
-      timestamp: 0,
-    };
-    expect(isRetryableAssistantError(message)).toBe(false);
+    expect(retried(text)).toBe(false);
+  });
+
+  it("names the spent Fable limit, not the weekly limit", () => {
+    const text = exhaustedMessage({
+      exhausted: true,
+      extraUsage: false,
+      claim: "seven_day_overage_included",
+      windows: [],
+    });
+    expect(text).toBe("Claude weekly Fable limit reached");
+    expect(retried(text)).toBe(false);
   });
 
   it("shows the ready status when no usage is known", () => {

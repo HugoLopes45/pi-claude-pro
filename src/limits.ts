@@ -17,8 +17,11 @@ const WINDOW_NAMES: Record<string, UsageWindow["name"]> = {
   seven_day: "7d",
 };
 
+/** Header window keys. `7d_oi` is the weekly Fable limit; only Fable responses carry it. */
+const HEADER_WINDOWS = { "5h": "5h", "7d": "7d", "7d_oi": "Fable" } as const;
+
 export interface UsageWindow {
-  name: "5h" | "7d";
+  name: (typeof HEADER_WINDOWS)[keyof typeof HEADER_WINDOWS];
   /** Fraction from 0 to 1. */
   utilization: number;
   /** Unix time in seconds. */
@@ -63,12 +66,14 @@ export function parseLimitHeaders(
       (claim !== undefined || overage !== undefined));
   const extraUsage =
     rejected && (overage === "allowed" || overage === "allowed_warning");
-  const windows = (["5h", "7d"] as const).flatMap((name): UsageWindow[] => {
-    const utilization = finite(h[`${name}-utilization`]);
-    return utilization === undefined
-      ? []
-      : [{ name, utilization, resetsAt: finite(h[`${name}-reset`]) }];
-  });
+  const windows = Object.entries(HEADER_WINDOWS).flatMap(
+    ([key, name]): UsageWindow[] => {
+      const utilization = finite(h[`${key}-utilization`]);
+      return utilization === undefined
+        ? []
+        : [{ name, utilization, resetsAt: finite(h[`${key}-reset`]) }];
+    },
+  );
   return {
     exhausted: rejected && !extraUsage,
     extraUsage,
