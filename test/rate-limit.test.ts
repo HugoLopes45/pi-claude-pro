@@ -158,6 +158,18 @@ describe("createRateLimits", () => {
     expect(sonnet.explain("429")).toBe("429");
   });
 
+  it("keeps a 429 retryable when extra usage covers the spent subscription", async () => {
+    const watch = watcher({ fetchUsage: async () => spentBody })(auth);
+    const response = await watch.inspect(
+      reply(429, {
+        "anthropic-ratelimit-unified-status": "rejected",
+        "anthropic-ratelimit-unified-overage-status": "allowed",
+      }),
+    );
+    expect(response.headers.get("x-should-retry")).toBeNull();
+    expect(watch.explain("429 rate_limit_error")).toBe("429 rate_limit_error");
+  });
+
   it("keeps a transient 429 retryable", async () => {
     const watch = watcher({ fetchUsage: async () => freeBody })(auth);
     const response = await watch.inspect(reply(429));

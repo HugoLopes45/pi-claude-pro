@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep a 429 retryable when the headers say extra usage covers it. The usage lookup no longer marks such a request as a spent limit.
+- Name the cause when `claude --version` fails.
+
 ## 1.1.1
 
 - Send the billing block on Anthropic message-thread continuations, which Anthropic otherwise rejects with a 429 after every tool call.
