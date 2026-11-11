@@ -5,34 +5,18 @@
 [![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
 [![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
 
-Use your Claude Pro or Max subscription in [Pi](https://pi.dev), with your usage in the footer and a clear message when a limit is spent.
+Use your Claude Pro or Max subscription in [Pi](https://pi.dev) instead of an Anthropic API key. Pi shows your 5-hour and weekly usage in the footer, and tells you when a limit is spent and when it resets.
 
-## What it does
+This package is unofficial. Read [Risks and limits](#risks-and-limits) before you use it.
 
-When the Anthropic model uses a subscription token, the extension:
+## Install
 
-- sends the request with the Claude Code identity: user agent, `x-app` header, session header and billing block;
-- moves Pi's documentation section from the system prompt to the start of the first user message;
-- uses the full context window from Pi's model catalog;
-- shows your 5-hour and weekly usage in the footer;
-- replaces the error of a spent limit with a clear message and its reset time, and stops pointless retries.
+You need:
 
-Requests that use an Anthropic API key are not changed.
-
-### Compatibility with other extensions
-
-The adapter accepts structured Pi prompts and complete text prompts returned by other extensions. It does not require a specific extension configuration.
-
-Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom documentation, instructions, tools and skills remain unchanged. Unrecognized or fragmented documentation stays in place.
-
-## Requirements
-
-- Pi. CI checks the lockfile baseline and the latest published Pi packages; see the compatibility policy below.
+- Pi. CI checks the lockfile baseline and the latest published Pi packages. See [Risks and limits](#risks-and-limits).
 - A Claude Pro or Max subscription.
 
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version. Otherwise it sends the bundled version, 2.1.289.
-
-## Install
 
 ```bash
 pi install npm:pi-claude-pro
@@ -60,6 +44,24 @@ Use only one extension that handles the `anthropic` provider. Remove other Claud
 3. Select an Anthropic model with `/model`.
 
 The footer shows **Claude Pro** when the extension is active.
+
+## What it does
+
+When the Anthropic model uses a subscription token, the extension:
+
+- sends the request with the Claude Code identity: user agent, `x-app` header, session header and billing block;
+- moves Pi's documentation section from the system prompt to the start of the first user message;
+- uses the full context window from Pi's model catalog;
+- shows your 5-hour and weekly usage in the footer;
+- replaces the error of a spent limit with a clear message and its reset time, and stops pointless retries.
+
+Requests that use an Anthropic API key are not changed.
+
+### Compatibility with other extensions
+
+The adapter accepts structured Pi prompts and complete text prompts returned by other extensions. It does not require a specific extension configuration.
+
+Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom documentation, instructions, tools and skills remain unchanged. Unrecognized or fragmented documentation stays in place.
 
 ## Footer
 
@@ -108,24 +110,7 @@ Report bugs on [GitHub Issues](https://github.com/HugoLopes45/pi-claude-pro/issu
 
 ## Contributing and releases
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and pull requests. Report vulnerabilities through [SECURITY.md](SECURITY.md), not public issues.
-
-1. Open a pull request. CI runs `npm run check` on Node 22 and 24.
-2. Add user-visible changes under `## Unreleased` in `CHANGELOG.md`.
-3. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes.
-4. Run `npm run release -- <patch|minor|major|x.y.z>` from an up-to-date, clean `main`. This opens a release PR with matching package and lockfile versions, versioned notes, and an empty `Unreleased` section.
-5. Merge the release PR, then wait for CI to succeed on the exact `main` commit you want to publish.
-6. Create `vX.Y.Z` at that commit and push that tag. The tag must match the package version. Release tags cannot be moved or deleted.
-7. As the repository owner, launch **Publish release** at that tag: `gh workflow run release.yml --ref vX.Y.Z -f tag=vX.Y.Z`.
-8. Approve the `npm` environment deployment. The owner can approve their own run; no third-party approval is needed.
-
-Merges, pushes, and tag creation never publish. The manual workflow requires an existing stable-version tag, matching manifests and release notes, and successful CI on its exact commit. That commit must belong to `main`. The dispatch ref and input tag must match. Running from the tag keeps npm provenance tied to the selected commit.
-
-The workflow tests and publishes that commit, not the current tip of `main`, then creates the GitHub release. A new npm publication updates the `latest` dist-tag.
-
-If publication fails, fix the cause and use **Re-run failed jobs** on the original run, with the same tag. An existing npm version must have the same source commit; mismatches fail instead of overwriting a release. For code changes, prepare a new version and tag. npm can take time to make an accepted publication visible.
-
-The workflow uses npm trusted publishing, so the repository stores no npm token. Configure the npm trusted publisher for this repository, `release.yml`, and the GitHub environment `npm`. Restrict that environment to tags `v*`, with the owner as its required reviewer and self-review allowed. The workflow checks that the tagged commit belongs to `main`. Protect `v*` tags from updates and deletion, with no bypass actors. Keep these repository protections enabled to preserve release identity across retries.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks, pull requests and releases. Report vulnerabilities through [SECURITY.md](SECURITY.md), not public issues.
 
 ## License
 
