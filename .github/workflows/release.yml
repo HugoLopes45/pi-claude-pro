@@ -1,13 +1,9 @@
 name: Publish release
-run-name: Publish ${{ inputs.tag }}
+run-name: Publish ${{ github.event.release.tag_name }}
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing tag to publish to npm (latest), for example v1.2.3'
-        required: true
-        type: string
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -23,68 +19,41 @@ concurrency:
 jobs:
   release:
     name: Publish
-    if: github.ref == format('refs/tags/{0}', inputs.tag) && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner
+    if: github.actor == github.repository_owner && !github.event.release.prerelease
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       actions: read # read CI runs of the release commit
-      contents: write # create the GitHub release
       id-token: write # npm trusted publishing and provenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-          cache: npm
-      - name: Resolve and validate the requested tag
-        id: target
-        run: node scripts/release.ts target "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-      - name: Require successful CI on the exact commit
+          package-manager-cache: false
+      - name: Require a tested main commit
         run: |
-          test "$COMMIT" = "$GITHUB_SHA"
-          conclusion=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$COMMIT&branch=main" | jq --slurp --raw-output '[.[].workflow_runs[]] | max_by(.run_number) | .conclusion')
-          if [ "$conclusion" != "success" ]; then
-            echo "The latest CI run for $COMMIT on main must succeed before publication." >&2
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tag must be vX.Y.Z, got $TAG." >&2
             exit 1
           fi
-          printf '### Publication target\n- Tag: `%s`\n- Commit: `%s`\n' "$RELEASE_TAG" "$COMMIT" >> "$GITHUB_STEP_SUMMARY"
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          conclusion=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&branch=main" | jq --slurp --raw-output '[.[].workflow_runs[]] | max_by(.run_number) | .conclusion')
+          if [ "$conclusion" != "success" ]; then
+            echo "The latest CI run for $GITHUB_SHA on main must succeed before publication." >&2
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMIT: ${{ steps.target.outputs.commit }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          TAG: ${{ github.event.release.tag_name }}
       - run: npm ci
-      - run: npm run check
-      - name: Check existing publication and tag identity
-        id: publication
-        run: |
-          git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
-          test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$COMMIT"
-          node scripts/release.ts notes "$VERSION" > "$RUNNER_TEMP/notes.md"
-          name=$(node -p 'require("./package.json").name')
-          published=$(node scripts/release.ts published "$name" "$VERSION" "$COMMIT")
-          released=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"$RELEASE_TAG\" and .draft == false) | .id")
-          {
-            echo "published=$published"
-            echo "released=$released"
-          } >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
-          VERSION: ${{ steps.target.outputs.version }}
-          COMMIT: ${{ steps.target.outputs.commit }}
       - name: Publish to npm
-        if: steps.publication.outputs.published == 'false'
-        run: npm publish
-      - name: Create the GitHub release
-        if: steps.publication.outputs.released == ''
-        run: gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/notes.md"
+        run: |
+          npm version "${TAG#v}" --no-git-tag-version --allow-same-version
+          npm publish
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          TAG: ${{ github.event.release.tag_name }}
