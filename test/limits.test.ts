@@ -33,6 +33,22 @@ describe("parseLimitHeaders", () => {
     });
   });
 
+  it("reads the weekly Fable limit that Fable responses carry", () => {
+    expect(
+      parseLimitHeaders(
+        {
+          [`${P}7d-utilization`]: "0.36",
+          [`${P}7d_oi-utilization`]: "0.65",
+          [`${P}7d_oi-reset`]: "1700000000",
+        },
+        200,
+      )?.windows,
+    ).toEqual([
+      { name: "7d", utilization: 0.36, resetsAt: undefined },
+      { name: "Fable", utilization: 0.65, resetsAt: 1700000000 },
+    ]);
+  });
+
   it("marks a rejected response as exhausted, case-insensitively", () => {
     const limits = parseLimitHeaders(
       {
