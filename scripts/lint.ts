@@ -11,14 +11,12 @@ const config: Linter.Config = {
   rules: { complexity: ["error", 10] },
 };
 
-let problems = 0;
 for (const file of globSync("{extensions,scripts,src,test}/**/*.ts")) {
   const code = stripTypeScriptTypes(readFileSync(file, "utf8"));
   for (const message of linter.verify(code, config, file)) {
-    problems++;
+    process.exitCode = 1;
     console.error(
       `${file}:${message.line}:${message.column} ${message.message}`,
     );
   }
 }
-if (problems) process.exit(1);
