@@ -17,7 +17,11 @@ const TOKEN = "sk-ant-oat01-offline-test";
 interface Sent {
   url: string;
   headers: Headers;
-  body: { system: { type: string; text: string }[]; messages?: unknown[] };
+  body: {
+    system: { type: string; text: string }[];
+    messages?: unknown[];
+    thread?: { type: string };
+  };
 }
 
 function sse(events: ({ type: string } & Record<string, unknown>)[]): string {
@@ -182,7 +186,9 @@ describe("inside Pi", () => {
       "You are Claude Code, Anthropic's official CLI for Claude.",
     );
     expect(system.join("\n")).not.toContain("Pi documentation");
-    expect(system.slice(1).join("\n")).toContain("operating inside pi");
+    expect(system.slice(1).join("\n")).toContain(
+      "inside pi, a coding agent harness",
+    );
   });
 
   const rateLimited = (headers: Record<string, string>) => () =>
@@ -270,15 +276,22 @@ describe("inside Pi", () => {
     );
     expect(sent).toHaveLength(2);
     for (const request of sent) {
+      // Pi 1.5+ continues a message thread: the server keeps the prompt and the
+      // earlier messages, so the request sends only billing and new messages.
+      const continued = request.body.thread?.type === "continue";
       const system = request.body.system.map((block) => block.text).join("\n");
       expect(system).not.toContain("Pi documentation");
-      expect(system).toContain(custom);
-      expect(system).toContain("operating inside pi");
+      if (continued) {
+        expect(system).toMatch(/^x-anthropic-billing-header: [^\n]*$/);
+      } else {
+        expect(system).toContain(custom);
+        expect(system).toContain("inside pi, a coding agent harness");
+      }
       expect(
         JSON.stringify(request.body.messages).split(
           "Pi documentation (read only",
         ),
-      ).toHaveLength(2);
+      ).toHaveLength(continued ? 1 : 2);
     }
   });
 
@@ -294,10 +307,13 @@ describe("inside Pi", () => {
         "Pi documentation (read only",
       ).length - 1;
     expect(sent).toHaveLength(2);
+    expect(JSON.stringify(sent[0]?.body.messages?.[0])).toContain(
+      "Pi documentation (read only",
+    );
     for (const request of sent) {
-      expect(docsCount(request)).toBe(1);
-      expect(JSON.stringify(request.body.messages?.[0])).toContain(
-        "Pi documentation (read only",
+      // A thread continuation does not resend the first user message.
+      expect(docsCount(request)).toBe(
+        request.body.thread?.type === "continue" ? 0 : 1,
       );
       expect(
         request.body.system.map((block) => block.text).join("\n"),
