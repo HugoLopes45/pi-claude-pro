@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,22 +14,14 @@ const VERSION = "2.1.289";
 describe("billingHeader", () => {
   it("signs the version with characters 4, 7 and 20 of the first user message", () => {
     const text = "abcdefghijklmnopqrstuvwxyz";
-    const suffix = createHash("sha256")
-      .update("59cf53e54c78" + "ehu" + "2.1.289")
-      .digest("hex")
-      .slice(0, 3);
     expect(billingHeader(VERSION, text, true)).toBe(
-      `x-anthropic-billing-header: cc_version=2.1.289.${suffix}; cc_entrypoint=pi; cch=00000;`,
+      "x-anthropic-billing-header: cc_version=2.1.289.739; cc_entrypoint=pi; cch=00000;",
     );
   });
 
   it("uses 0 for missing characters", () => {
-    const suffix = createHash("sha256")
-      .update("59cf53e54c78" + "000" + "2.1.289")
-      .digest("hex")
-      .slice(0, 3);
     expect(billingHeader(VERSION, "hi", true)).toContain(
-      `cc_version=2.1.289.${suffix};`,
+      "cc_version=2.1.289.81d;",
     );
   });
 
@@ -79,6 +70,13 @@ describe("readClaudeCodeVersion", () => {
   it("uses the bundled version when Claude Code is not installed", () => {
     process.env.PATH = pathWithClaude();
     expect(readClaudeCodeVersion()).toBe(BUNDLED_CLAUDE_CODE_VERSION);
+  });
+
+  it("names the cause when Claude Code fails", () => {
+    process.env.PATH = pathWithClaude("exit 3");
+    expect(() => readClaudeCodeVersion()).toThrow(
+      "cannot run `claude --version` (Command failed: claude --version)",
+    );
   });
 
   it("fails when an installed Claude Code prints no version", () => {

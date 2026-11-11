@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
+import { errorText } from "./util.ts";
 
 // Anthropic validates the 3-character suffix of `cc_version` against this salt.
 const BILLING_SALT = "59cf53e54c78";
@@ -30,7 +31,7 @@ export function readClaudeCodeVersion(): string {
   } catch (error) {
     if (isMissingCommand(error)) return BUNDLED_CLAUDE_CODE_VERSION;
     throw new Error(
-      "pi-claude-pro cannot run `claude --version`. Repair or uninstall Claude Code.",
+      `pi-claude-pro cannot run \`claude --version\` (${errorText(error)}). Repair or uninstall Claude Code.`,
       { cause: error },
     );
   }

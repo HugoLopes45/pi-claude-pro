@@ -74,7 +74,7 @@ Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom
 
 ## Troubleshooting
 
-**`pi-claude-pro cannot run claude --version`**: Claude Code is installed but broken. Repair it, or remove it from the `PATH`.
+**`pi-claude-pro cannot run claude --version`**: Claude Code is installed but broken. The message ends with the cause. Repair it, or remove it from the `PATH`.
 
 **`Claude 5-hour limit reached`**: wait for the reset time, or enable extra usage in your Claude account.
 
