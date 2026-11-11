@@ -8,7 +8,7 @@ import {
   type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { billingHeader, clientHeaders } from "./claude-code.ts";
-import { firstUserText, rewriteSystem } from "./payload.ts";
+import { addThreadBilling, firstUserText, rewriteSystem } from "./payload.ts";
 import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
 import { errorText } from "./util.ts";
@@ -92,6 +92,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
       modelId: model.id,
     });
 
+    let billing: string | undefined;
     const inner = deps.stream(
       {
         ...model,
@@ -104,16 +105,22 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
         onPayload: async (payload, payloadModel) => {
           const next =
             (await options.onPayload?.(payload, payloadModel)) ?? payload;
-          const billing = billingHeader(
-            version,
-            firstUserText(next),
-            firstParty,
-          );
+          billing = billingHeader(version, firstUserText(next), firstParty);
           return rewriteSystem(next, billing);
         },
         // Error responses never reach onResponse, so quota errors are read here.
-        fetch: async (input, init) =>
-          watch.inspect(await (options.fetch ?? fetch)(input, init)),
+        fetch: async (input, init) => {
+          const sent =
+            billing !== undefined && typeof init?.body === "string"
+              ? {
+                  ...init,
+                  body: JSON.stringify(
+                    addThreadBilling(JSON.parse(init.body), billing),
+                  ),
+                }
+              : init;
+          return watch.inspect(await (options.fetch ?? fetch)(input, sent));
+        },
       },
     );
 

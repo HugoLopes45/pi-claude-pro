@@ -51,3 +51,13 @@ export function rewriteSystem(payload: unknown, billing: string): unknown {
   const kept = withoutIdentity.some(isTextBlock) ? withoutIdentity : prompt;
   return { ...payload, system: [{ type: "text", text: billing }, ...kept] };
 }
+
+/**
+ * Pi omits `system` from message-thread continuations, but Anthropic refuses
+ * subscription continuations without the billing block (429 "Error").
+ */
+export function addThreadBilling(payload: unknown, billing: string): unknown {
+  if (!isRecord(payload) || !isRecord(payload.thread)) return payload;
+  if (payload.thread.type !== "continue") return payload;
+  return { ...payload, system: [{ type: "text", text: billing }] };
+}
