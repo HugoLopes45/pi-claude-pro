@@ -8,14 +8,14 @@ import {
 } from "@earendil-works/pi-ai";
 import {
   billingHeader,
+  BUNDLED_CLAUDE_CODE_VERSION,
   clientHeaders,
-  newerVersion,
-  requiredVersion,
 } from "./claude-code.ts";
 import { addThreadBilling, firstUserText, rewriteSystem } from "./payload.ts";
 import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
-import { jsonBody } from "./util.ts";
+
+const REQUIRED_VERSION = /version (\d+(?:\.\d+)+) or newer is required/;
 
 type StreamFn = (
   model: Model<Api>,
@@ -25,7 +25,6 @@ type StreamFn = (
 
 export interface ProviderDeps {
   stream: StreamFn;
-  claudeCodeVersion: string;
   /** Full context windows from Pi's model catalog, keyed by model id. */
   contextWindows: ReadonlyMap<string, number>;
   watchRequest: (auth: RequestAuth) => RequestWatch;
@@ -50,13 +49,11 @@ function isFirstParty(baseUrl: string): boolean {
 export function createProviderStream(deps: ProviderDeps): StreamFn {
   // Anthropic names the Claude Code version a model requires, so the bundled
   // version never has to follow new models.
-  let learned = "0";
+  let version = BUNDLED_CLAUDE_CODE_VERSION;
   return (model, context, options) => {
     const accessToken = options?.apiKey;
     if (!accessToken || !isSubscriptionToken(accessToken))
       return deps.stream(model, context, options);
-
-    const version = newerVersion(deps.claudeCodeVersion, learned);
 
     const headers = clientHeaders(options.headers, version, options.sessionId);
     const firstParty = isFirstParty(model.baseUrl);
@@ -97,11 +94,11 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
           let response = await send(body);
           const required =
             response.status === 400
-              ? requiredVersion(await jsonBody(response))
+              ? REQUIRED_VERSION.exec(await response.clone().text())?.[1]
               : undefined;
           if (required && typeof body === "string") {
-            learned = newerVersion(learned, required);
-            const retried = billingHeader(required, userText, firstParty);
+            version = required;
+            const retried = billingHeader(version, userText, firstParty);
             await response.body?.cancel();
             // Anthropic checks the billing version, so the user-agent can stay.
             response = await send(

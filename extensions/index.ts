@@ -4,7 +4,6 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { BUNDLED_CLAUDE_CODE_VERSION } from "../src/claude-code.ts";
 import { parseLimitHeaders, type Limits } from "../src/limits.ts";
 import { createProviderStream, isSubscriptionToken } from "../src/provider.ts";
 import { createRateLimits } from "../src/rate-limit.ts";
@@ -45,7 +44,6 @@ export default function claudePro(pi: ExtensionAPI): void {
     api: "anthropic-messages",
     streamSimple: createProviderStream({
       stream: anthropicMessagesApi().streamSimple,
-      claudeCodeVersion: BUNDLED_CLAUDE_CODE_VERSION,
       contextWindows: new Map(
         getBuiltinModels("anthropic").map((model) => [
           model.id,

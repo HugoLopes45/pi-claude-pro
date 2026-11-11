@@ -8,6 +8,10 @@ import {
   type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
+import {
+  billingHeader,
+  BUNDLED_CLAUDE_CODE_VERSION,
+} from "../src/claude-code.ts";
 import { createProviderStream, type ProviderDeps } from "../src/provider.ts";
 
 const model: Model<Api> = {
@@ -113,7 +117,6 @@ function piFetch(status: number, headers: Record<string, string> = {}) {
 function deps(overrides: Partial<ProviderDeps>): ProviderDeps {
   return {
     stream: fakeAdapter().stream,
-    claudeCodeVersion: "2.1.289",
     contextWindows: new Map([["claude-test", 1_000_000]]),
     watchRequest: () => ({
       inspect: async (response) => response,
@@ -166,7 +169,7 @@ describe("createProviderStream", () => {
     const call = adapter.calls[0];
     expect(call?.model.contextWindow).toBe(1_000_000);
     expect(call?.options?.headers).toEqual({
-      "user-agent": "claude-cli/2.1.289 (external, pi)",
+      "user-agent": `claude-cli/${BUNDLED_CLAUDE_CODE_VERSION} (external, pi)`,
       "x-app": "cli",
       "x-claude-code-session-id": "s1",
     });
@@ -176,7 +179,7 @@ describe("createProviderStream", () => {
         {
           type: "text",
           text: expect.stringMatching(
-            /^x-anthropic-billing-header: cc_version=2\.1\.289\.[0-9a-f]{3}; cc_entrypoint=pi; cch=00000;$/,
+            /^x-anthropic-billing-header: cc_version=[\d.]+\.[0-9a-f]{3}; cc_entrypoint=pi; cch=00000;$/,
           ),
         },
         { type: "text", text: "Prompt" },
@@ -196,14 +199,13 @@ describe("createProviderStream", () => {
       },
     }).result();
 
-    // "hello" samples "o00": sha256("59cf53e54c78o002.1.289") starts with 7e2.
     expect(bodies).toEqual([
       {
         ...CONTINUATION,
         system: [
           {
             type: "text",
-            text: "x-anthropic-billing-header: cc_version=2.1.289.7e2; cc_entrypoint=pi; cch=00000;",
+            text: billingHeader(BUNDLED_CLAUDE_CODE_VERSION, "hello", true),
           },
         ],
       },
@@ -234,7 +236,7 @@ describe("createProviderStream", () => {
         error: {
           type: "invalid_request_error",
           message:
-            "Claude Code 2.1.289 does not support this model; version 2.1.400 or newer is required. Run 'claude update'.",
+            "Claude Code 2.1.322 does not support this model; version 2.1.400 or newer is required. Run 'claude update'.",
           details: { error_code: "claude_code_version_too_old" },
         },
       },
@@ -285,9 +287,13 @@ describe("createProviderStream", () => {
     const versions = sent.map(
       (body) => /cc_version=([\d.]+)\./.exec(body)?.[1],
     );
-    expect(versions).toEqual(["2.1.289", "2.1.400", "2.1.400"]);
+    expect(versions).toEqual([
+      BUNDLED_CLAUDE_CODE_VERSION,
+      "2.1.400",
+      "2.1.400",
+    ]);
     expect(userAgents).toEqual([
-      "claude-cli/2.1.289 (external, pi)",
+      `claude-cli/${BUNDLED_CLAUDE_CODE_VERSION} (external, pi)`,
       "claude-cli/2.1.400 (external, pi)",
     ]);
   });
