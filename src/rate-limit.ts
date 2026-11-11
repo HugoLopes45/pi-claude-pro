@@ -10,6 +10,8 @@ export interface RequestAuth {
   headers: ProviderHeaders;
   signal: AbortSignal | undefined;
   modelId: string;
+  /** False when the model's base URL is not Anthropic, such as a proxy. */
+  firstParty: boolean;
 }
 
 export interface RateLimitDeps {
@@ -69,8 +71,13 @@ export function createRateLimits(
       headerLimits: Limits | undefined,
     ): Promise<Limits | undefined> {
       // The usage endpoint does not report extra usage, so it cannot overrule
-      // headers that say extra usage covers the request.
-      if (headerLimits?.exhausted || headerLimits?.extraUsage)
+      // headers that say extra usage covers the request. Behind a proxy, the
+      // request headers are meant for the proxy, not for Anthropic.
+      if (
+        headerLimits?.exhausted ||
+        headerLimits?.extraUsage ||
+        !auth.firstParty
+      )
         return headerLimits;
       try {
         return (await usage(auth)) ?? headerLimits;

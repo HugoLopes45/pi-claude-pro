@@ -10,6 +10,7 @@ const auth: RequestAuth = {
   headers: { "x-app": "cli" },
   signal: undefined,
   modelId: "claude-sonnet-4-5",
+  firstParty: true,
 };
 const spentBody = { five_hour: { utilization: 100 } };
 const freeBody = { five_hour: { utilization: 20 } };
@@ -168,6 +169,14 @@ describe("createRateLimits", () => {
     );
     expect(response.headers.get("x-should-retry")).toBeNull();
     expect(watch.explain("429 rate_limit_error")).toBe("429 rate_limit_error");
+  });
+
+  it("does not send the request headers to Anthropic when the model uses a proxy", async () => {
+    const fetchUsage = vi.fn(async () => spentBody);
+    const watch = watcher({ fetchUsage })({ ...auth, firstParty: false });
+    const response = await watch.inspect(reply(429));
+    expect(fetchUsage).not.toHaveBeenCalled();
+    expect(response.headers.get("x-should-retry")).toBeNull();
   });
 
   it("keeps a transient 429 retryable", async () => {

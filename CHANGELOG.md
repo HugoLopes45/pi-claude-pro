@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Skip the usage lookup when the model uses a proxy base URL, so headers meant for the proxy are not sent to Anthropic.
 - Keep a 429 retryable when the headers say extra usage covers it. The usage lookup no longer marks such a request as a spent limit.
 - Name the cause when `claude --version` fails.
 
