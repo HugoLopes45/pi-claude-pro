@@ -65,6 +65,21 @@ export function createRateLimits(
     let limits: Limits | undefined;
     let lookupError: string | undefined;
 
+    async function lookUp(
+      headerLimits: Limits | undefined,
+    ): Promise<Limits | undefined> {
+      // The usage endpoint does not report extra usage, so it cannot overrule
+      // headers that say extra usage covers the request.
+      if (headerLimits?.exhausted || headerLimits?.extraUsage)
+        return headerLimits;
+      try {
+        return (await usage(auth)) ?? headerLimits;
+      } catch (error) {
+        lookupError = errorText(error);
+        return headerLimits;
+      }
+    }
+
     return {
       async inspect(response) {
         limits = undefined;
@@ -78,14 +93,9 @@ export function createRateLimits(
             windows: [],
           };
         } else if (response.status === 429) {
-          limits = parseLimitHeaders(Object.fromEntries(response.headers), 429);
-          if (!limits?.exhausted) {
-            try {
-              limits = (await usage(auth)) ?? limits;
-            } catch (error) {
-              lookupError = errorText(error);
-            }
-          }
+          limits = await lookUp(
+            parseLimitHeaders(Object.fromEntries(response.headers), 429),
+          );
         } else {
           return response;
         }
