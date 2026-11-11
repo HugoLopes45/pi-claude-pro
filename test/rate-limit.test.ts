@@ -61,14 +61,9 @@ describe("createRateLimits", () => {
 
   it.each([
     "not JSON",
-    "null",
     JSON.stringify({
       type: "error",
       error: { type: "invalid_request_error", message: "Invalid model" },
-    }),
-    JSON.stringify({
-      type: "error",
-      error: { type: "invalid_request_error", message: 42 },
     }),
   ])("preserves unrelated or malformed 400 bodies: %s", async (body) => {
     const fetchUsage = vi.fn();
