@@ -90,6 +90,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
       headers,
       signal: options.signal,
       modelId: model.id,
+      firstParty,
     });
 
     let billing: string | undefined;
