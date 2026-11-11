@@ -1,7 +1,7 @@
 {
   "name": "pi-claude-pro",
   "version": "1.1.2",
-  "description": "Use your Claude Pro or Max subscription in Pi.",
+  "description": "Use your Claude Pro, Max or Ultra subscription in the Pi coding agent, without an Anthropic API key. The Pi footer shows your usage limits.",
   "type": "module",
   "license": "MIT",
   "author": "HugoLopes45 (https://github.com/HugoLopes45)",
@@ -20,7 +20,13 @@
     "claude",
     "claude-pro",
     "claude-max",
-    "anthropic"
+    "claude-ultra",
+    "claude-subscription",
+    "claude-code",
+    "anthropic",
+    "oauth",
+    "coding-agent",
+    "usage-limits"
   ],
   "files": [
     "extensions",

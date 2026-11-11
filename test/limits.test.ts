@@ -71,6 +71,15 @@ const OPUS = "claude-opus-4-1";
 const SONNET = "claude-sonnet-4-5";
 
 describe("parseUsageBody", () => {
+  it("shows only the weekly window on a plan without a 5-hour limit", () => {
+    expect(
+      parseUsageBody(
+        { five_hour: null, seven_day: { utilization: 10, resets_at: null } },
+        SONNET,
+      )?.windows,
+    ).toEqual([{ name: "7d", utilization: 0.1, resetsAt: undefined }]);
+  });
+
   it("does not count disabled extra usage as exhausted", () => {
     const limits = parseUsageBody(
       {
