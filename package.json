@@ -33,7 +33,8 @@
     ]
   },
   "scripts": {
-    "check": "node scripts/release.ts check && tsc --noEmit && vitest --run",
+    "check": "node scripts/release.ts check && tsc --noEmit && npm run lint && vitest --run",
+    "lint": "node scripts/lint.ts",
     "test": "vitest --run",
     "check:live": "node scripts/live-check.ts",
     "release": "node scripts/release.ts prepare",
@@ -47,6 +48,7 @@
     "@earendil-works/pi-ai": "^1.0.3",
     "@earendil-works/pi-coding-agent": "^1.0.3",
     "@types/node": "^26.6.4",
+    "eslint": "^10.14.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }
