@@ -76,6 +76,8 @@ Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom
 
 **`pi-claude-pro cannot run claude --version`**: Claude Code is installed but broken. The message ends with the cause. Repair it, or remove it from the `PATH`.
 
+**`claude_code_version_too_old`** or **`version X or newer is required`**: the model needs a newer Claude Code than the version sent. Run `claude update`, or update pi-claude-pro.
+
 **`Claude 5-hour limit reached`**: wait for the reset time, or enable extra usage in your Claude account.
 
 **`usage lookup failed`**: Anthropic returned HTTP 429, and the usage endpoint did not answer. Pi retries the request.
