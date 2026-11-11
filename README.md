@@ -16,7 +16,7 @@ You need:
 - Pi. CI checks the lockfile baseline and the latest published Pi packages. See [Risks and limits](#risks-and-limits).
 - A Claude Pro or Max subscription.
 
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version when it is newer than the bundled version, 2.1.322. Otherwise it sends the bundled version.
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version when it is newer than the bundled version, 2.1.322. Otherwise it sends the bundled version. When a model requires a newer version, Anthropic names it, and the extension retries once with that version and keeps it for the session.
 
 ```bash
 pi install npm:pi-claude-pro
@@ -76,7 +76,7 @@ Only complete `<docs>` blocks starting with `Pi documentation` are moved. Custom
 
 **`pi-claude-pro cannot run claude --version`**: Claude Code is installed but broken. The message ends with the cause. Repair it, or remove it from the `PATH`.
 
-**`claude_code_version_too_old`** or **`version X or newer is required`**: the model needs a newer Claude Code than the version sent. Run `claude update`, or update pi-claude-pro.
+**`claude_code_version_too_old`** or **`version X or newer is required`**: the retry with the version Anthropic names also failed. Run `claude update`, or update pi-claude-pro.
 
 **`Claude 5-hour limit reached`**: wait for the reset time, or enable extra usage in your Claude account.
 

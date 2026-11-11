@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
-import { errorText } from "./util.ts";
+import { errorText, isRecord } from "./util.ts";
 
 // Anthropic validates the 3-character suffix of `cc_version` against this salt.
 const BILLING_SALT = "59cf53e54c78";
@@ -44,11 +44,20 @@ export function readClaudeCodeVersion(): string {
       `pi-claude-pro cannot read the Claude Code version from "${output.trim()}".`,
     );
   }
-  return version.localeCompare(BUNDLED_CLAUDE_CODE_VERSION, "en", {
-    numeric: true,
-  }) > 0
-    ? version
-    : BUNDLED_CLAUDE_CODE_VERSION;
+  return newerVersion(version, BUNDLED_CLAUDE_CODE_VERSION);
+}
+
+export function newerVersion(a: string, b: string): string {
+  return a.localeCompare(b, "en", { numeric: true }) > 0 ? a : b;
+}
+
+/** The version named by a `claude_code_version_too_old` error body. */
+export function requiredVersion(body: unknown): string | undefined {
+  if (!isRecord(body) || !isRecord(body.error)) return undefined;
+  const { details, message } = body.error;
+  if (!isRecord(details) || typeof message !== "string") return undefined;
+  if (details.error_code !== "claude_code_version_too_old") return undefined;
+  return /version (\d+(?:\.\d+)+) or newer is required/.exec(message)?.[1];
 }
 
 export function billingHeader(

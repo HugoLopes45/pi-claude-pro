@@ -227,6 +227,71 @@ describe("createProviderStream", () => {
     expect(sent).toEqual([body]);
   });
 
+  it("retries once at the Claude Code version a model requires, then keeps it", async () => {
+    const tooOld = Response.json(
+      {
+        type: "error",
+        error: {
+          type: "invalid_request_error",
+          message:
+            "Claude Code 2.1.289 does not support this model; version 2.1.400 or newer is required. Run 'claude update'.",
+          details: { error_code: "claude_code_version_too_old" },
+        },
+      },
+      { status: 400 },
+    );
+    const responses = [tooOld, new Response("{}"), new Response("{}")];
+    const sent: string[] = [];
+    const userAgents: unknown[] = [];
+    const stream = createProviderStream(
+      deps({
+        stream: (m, _c, options) => {
+          userAgents.push(options?.headers?.["user-agent"]);
+          const out = createAssistantMessageEventStream();
+          void (async () => {
+            const payload = await options?.onPayload?.(
+              { messages: [{ role: "user", content: "hello" }] },
+              m,
+            );
+            if (!options?.fetch) throw new Error("fetch missing");
+            const response = await options.fetch("https://api.anthropic.com", {
+              body: JSON.stringify(payload),
+            });
+            out.push({
+              type: "done",
+              reason: "stop",
+              message: message(response.ok ? "stop" : "error"),
+            });
+            out.end();
+          })();
+          return out;
+        },
+      }),
+    );
+    const options = {
+      apiKey: TOKEN,
+      fetch: async (_input: unknown, init?: RequestInit) => {
+        sent.push(String(init?.body));
+        const response = responses.shift();
+        if (!response) throw new Error("unexpected request");
+        return response;
+      },
+    };
+
+    const first = await stream(model, context, options).result();
+    await stream(model, context, options).result();
+
+    expect(first.stopReason).toBe("stop");
+    const versions = sent.map(
+      (body) => /cc_version=([\d.]+)\./.exec(body)?.[1],
+    );
+    expect(versions).toEqual(["2.1.289", "2.1.400", "2.1.400"]);
+    expect(userAgents).toEqual([
+      "claude-cli/2.1.289 (external, pi)",
+      "claude-cli/2.1.400 (external, pi)",
+    ]);
+  });
+
   it("fails visibly when the Claude Code version is unreadable", async () => {
     const adapter = fakeAdapter();
     const stream = createProviderStream(

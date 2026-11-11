@@ -7,11 +7,16 @@ import {
   type SimpleStreamOptions,
   type TranscriptContext,
 } from "@earendil-works/pi-ai";
-import { billingHeader, clientHeaders } from "./claude-code.ts";
+import {
+  billingHeader,
+  clientHeaders,
+  newerVersion,
+  requiredVersion,
+} from "./claude-code.ts";
 import { addThreadBilling, firstUserText, rewriteSystem } from "./payload.ts";
 import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
-import { errorText } from "./util.ts";
+import { errorText, jsonBody } from "./util.ts";
 
 type StreamFn = (
   model: Model<Api>,
@@ -71,6 +76,9 @@ function failedStream(
  * requests. Requests with an API key pass through unchanged.
  */
 export function createProviderStream(deps: ProviderDeps): StreamFn {
+  // Anthropic names the Claude Code version a model requires, so the bundled
+  // version never has to follow new models.
+  let learned = "0";
   return (model, context, options) => {
     const accessToken = options?.apiKey;
     if (!accessToken || !isSubscriptionToken(accessToken))
@@ -82,6 +90,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
     } catch (error) {
       return failedStream(model, error);
     }
+    version = newerVersion(version, learned);
 
     const headers = clientHeaders(options.headers, version, options.sessionId);
     const firstParty = isFirstParty(model.baseUrl);
@@ -94,6 +103,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
     });
 
     let billing: string | undefined;
+    let userText = "";
     const inner = deps.stream(
       {
         ...model,
@@ -106,21 +116,33 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
         onPayload: async (payload, payloadModel) => {
           const next =
             (await options.onPayload?.(payload, payloadModel)) ?? payload;
-          billing = billingHeader(version, firstUserText(next), firstParty);
+          userText = firstUserText(next);
+          billing = billingHeader(version, userText, firstParty);
           return rewriteSystem(next, billing);
         },
         // Error responses never reach onResponse, so quota errors are read here.
         fetch: async (input, init) => {
-          const sent =
+          const send = (body: RequestInit["body"]) =>
+            (options.fetch ?? fetch)(input, { ...init, body });
+          const body =
             billing !== undefined && typeof init?.body === "string"
-              ? {
-                  ...init,
-                  body: JSON.stringify(
-                    addThreadBilling(JSON.parse(init.body), billing),
-                  ),
-                }
-              : init;
-          return watch.inspect(await (options.fetch ?? fetch)(input, sent));
+              ? JSON.stringify(addThreadBilling(JSON.parse(init.body), billing))
+              : init?.body;
+          let response = await send(body);
+          const required =
+            response.status === 400
+              ? requiredVersion(await jsonBody(response))
+              : undefined;
+          if (required && typeof body === "string") {
+            learned = newerVersion(learned, required);
+            const retried = billingHeader(required, userText, firstParty);
+            await response.body?.cancel();
+            // Anthropic checks the billing version, so the user-agent can stay.
+            response = await send(
+              JSON.stringify(rewriteSystem(JSON.parse(body), retried)),
+            );
+          }
+          return watch.inspect(response);
         },
       },
     );
