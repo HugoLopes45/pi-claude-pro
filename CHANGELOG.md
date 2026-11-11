@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.1
+
 - Send the billing block on Anthropic message-thread continuations, which Anthropic otherwise rejects with a 429 after every tool call.
 - Publish only through an owner-approved manual workflow targeting an immutable release tag, with matching metadata and successful CI on its exact main commit.
 - Preserve an empty Unreleased section when preparing a release and reject duplicate versions and malformed registry responses.
