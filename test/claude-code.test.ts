@@ -67,6 +67,11 @@ describe("readClaudeCodeVersion", () => {
     expect(readClaudeCodeVersion()).toBe("9.8.765");
   });
 
+  it("uses the bundled version when the installed one is older", () => {
+    process.env.PATH = pathWithClaude("echo '2.1.9 (Claude Code)'");
+    expect(readClaudeCodeVersion()).toBe(BUNDLED_CLAUDE_CODE_VERSION);
+  });
+
   it("uses the bundled version when Claude Code is not installed", () => {
     process.env.PATH = pathWithClaude();
     expect(readClaudeCodeVersion()).toBe(BUNDLED_CLAUDE_CODE_VERSION);

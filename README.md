@@ -16,7 +16,7 @@ You need:
 - Pi. CI checks the lockfile baseline and the latest published Pi packages. See [Risks and limits](#risks-and-limits).
 - A Claude Pro or Max subscription.
 
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version. Otherwise it sends the bundled version, 2.1.289.
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is optional. When `claude` is on the `PATH`, the extension sends its version when it is newer than the bundled version, 2.1.322. Otherwise it sends the bundled version.
 
 ```bash
 pi install npm:pi-claude-pro
