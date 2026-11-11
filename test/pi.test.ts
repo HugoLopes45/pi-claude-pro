@@ -148,7 +148,7 @@ describe("inside Pi", () => {
   beforeEach(() => {
     const bin = mkdtempSync(join(tmpdir(), "pi-claude-pro-bin-"));
     const claude = join(bin, "claude");
-    writeFileSync(claude, "#!/bin/sh\necho '2.1.289 (Claude Code)'\n");
+    writeFileSync(claude, "#!/bin/sh\necho '9.8.765 (Claude Code)'\n");
     chmodSync(claude, 0o755);
     path = process.env.PATH;
     process.env.PATH = `${bin}${delimiter}${path ?? ""}`;
@@ -174,13 +174,13 @@ describe("inside Pi", () => {
     );
     expect(request?.headers.get("authorization")).toBe(`Bearer ${TOKEN}`);
     expect(request?.headers.get("user-agent")).toBe(
-      "claude-cli/2.1.289 (external, pi)",
+      "claude-cli/9.8.765 (external, pi)",
     );
     expect(request?.headers.get("x-app")).toBe("cli");
     expect(request?.headers.get("x-claude-code-session-id")).toBeTruthy();
     const system = request?.body.system.map((block) => block.text) ?? [];
     expect(system[0]).toMatch(
-      /^x-anthropic-billing-header: cc_version=2\.1\.289\.[0-9a-f]{3}; cc_entrypoint=pi; cch=00000;$/,
+      /^x-anthropic-billing-header: cc_version=9\.8\.765\.[0-9a-f]{3}; cc_entrypoint=pi; cch=00000;$/,
     );
     expect(system).not.toContain(
       "You are Claude Code, Anthropic's official CLI for Claude.",

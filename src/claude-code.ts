@@ -8,7 +8,7 @@ const BILLING_SALT = "59cf53e54c78";
 const SAMPLED_INDEXES = [4, 7, 20];
 const ENTRYPOINT = "pi";
 /** The latest Claude Code version this package was tested with. */
-export const BUNDLED_CLAUDE_CODE_VERSION = "2.1.289";
+export const BUNDLED_CLAUDE_CODE_VERSION = "2.1.322";
 const REPLACED_HEADERS = new Set([
   "user-agent",
   "x-app",
@@ -19,7 +19,10 @@ function isMissingCommand(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
-/** The installed Claude Code version, or the bundled one without Claude Code. */
+/**
+ * The newer of the installed and bundled Claude Code versions. Anthropic
+ * rejects new models below a minimum version, and the installed one can lag.
+ */
 export function readClaudeCodeVersion(): string {
   let output: string;
   try {
@@ -41,7 +44,11 @@ export function readClaudeCodeVersion(): string {
       `pi-claude-pro cannot read the Claude Code version from "${output.trim()}".`,
     );
   }
-  return version;
+  return version.localeCompare(BUNDLED_CLAUDE_CODE_VERSION, "en", {
+    numeric: true,
+  }) > 0
+    ? version
+    : BUNDLED_CLAUDE_CODE_VERSION;
 }
 
 export function billingHeader(
