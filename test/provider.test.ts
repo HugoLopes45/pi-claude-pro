@@ -24,6 +24,10 @@ const model: Model<Api> = {
 };
 const context = normalizeContext({ messages: [] });
 const TOKEN = "sk-ant-oat01-test";
+const CONTINUATION = {
+  messages: [{ role: "user", content: "tool result" }],
+  thread: { type: "continue", previous_message_id: "msg_1" },
+};
 
 function message(
   stopReason: "stop" | "error",
@@ -55,7 +59,7 @@ interface Call {
 }
 
 /** Fake Anthropic adapter: runs the payload hook, fetches once, then ends. */
-function fakeAdapter() {
+function fakeAdapter(body = "{}") {
   const calls: Call[] = [];
   const payloads: unknown[] = [];
   const stream = (
@@ -84,7 +88,7 @@ function fakeAdapter() {
       if (!options?.fetch) throw new Error("fetch missing");
       const response = await options.fetch(
         "https://api.anthropic.com/v1/messages",
-        {},
+        { body },
       );
       out.push(
         response.ok
@@ -178,6 +182,49 @@ describe("createProviderStream", () => {
         { type: "text", text: "Prompt" },
       ],
     });
+  });
+
+  it("sends the billing block on thread continuations", async () => {
+    const bodies: unknown[] = [];
+    await createProviderStream(
+      deps({ stream: fakeAdapter(JSON.stringify(CONTINUATION)).stream }),
+    )(model, context, {
+      apiKey: TOKEN,
+      fetch: async (_input, init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response("{}", { status: 200 });
+      },
+    }).result();
+
+    // "hello" samples "o00": sha256("59cf53e54c78o002.1.289") starts with 7e2.
+    expect(bodies).toEqual([
+      {
+        ...CONTINUATION,
+        system: [
+          {
+            type: "text",
+            text: "x-anthropic-billing-header: cc_version=2.1.289.7e2; cc_entrypoint=pi; cch=00000;",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("sends requests without a thread unchanged, as older Pi does", async () => {
+    const body = JSON.stringify({ messages: [] });
+    const sent: unknown[] = [];
+    await createProviderStream(deps({ stream: fakeAdapter(body).stream }))(
+      model,
+      context,
+      {
+        apiKey: TOKEN,
+        fetch: async (_input, init) => {
+          sent.push(init?.body);
+          return new Response("{}", { status: 200 });
+        },
+      },
+    ).result();
+    expect(sent).toEqual([body]);
   });
 
   it("fails visibly when the Claude Code version is unreadable", async () => {
