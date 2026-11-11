@@ -19,7 +19,7 @@ concurrency:
 jobs:
   release:
     name: Publish
-    if: github.actor == github.repository_owner && !github.event.release.prerelease
+    if: github.actor == github.repository_owner && github.triggering_actor == github.repository_owner && !github.event.release.prerelease
     runs-on: ubuntu-latest
     environment: npm
     permissions:
