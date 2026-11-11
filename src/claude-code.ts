@@ -1,64 +1,17 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
-import { errorText, isRecord } from "./util.ts";
 
 // Anthropic validates the 3-character suffix of `cc_version` against this salt.
 const BILLING_SALT = "59cf53e54c78";
 const SAMPLED_INDEXES = [4, 7, 20];
 const ENTRYPOINT = "pi";
-/** The latest Claude Code version this package was tested with. */
+/** The version sent until a model requires a newer one. */
 export const BUNDLED_CLAUDE_CODE_VERSION = "2.1.322";
 const REPLACED_HEADERS = new Set([
   "user-agent",
   "x-app",
   "x-claude-code-session-id",
 ]);
-
-function isMissingCommand(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
-}
-
-/**
- * The newer of the installed and bundled Claude Code versions. Anthropic
- * rejects new models below a minimum version, and the installed one can lag.
- */
-export function readClaudeCodeVersion(): string {
-  let output: string;
-  try {
-    output = execFileSync("claude", ["--version"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 5_000,
-    });
-  } catch (error) {
-    if (isMissingCommand(error)) return BUNDLED_CLAUDE_CODE_VERSION;
-    throw new Error(
-      `pi-claude-pro cannot run \`claude --version\` (${errorText(error)}). Repair or uninstall Claude Code.`,
-      { cause: error },
-    );
-  }
-  const version = /^\d+(?:\.\d+)+/.exec(output.trim())?.[0];
-  if (!version) {
-    throw new Error(
-      `pi-claude-pro cannot read the Claude Code version from "${output.trim()}".`,
-    );
-  }
-  return newerVersion(version, BUNDLED_CLAUDE_CODE_VERSION);
-}
-
-export function newerVersion(a: string, b: string): string {
-  return a.localeCompare(b, "en", { numeric: true }) > 0 ? a : b;
-}
-
-/** The version named by a `claude_code_version_too_old` error body. */
-export function requiredVersion(body: unknown): string | undefined {
-  if (!isRecord(body) || !isRecord(body.error)) return undefined;
-  const { details, message } = body.error;
-  if (!isRecord(details) || typeof message !== "string") return undefined;
-  if (details.error_code !== "claude_code_version_too_old") return undefined;
-  return /version (\d+(?:\.\d+)+) or newer is required/.exec(message)?.[1];
-}
 
 export function billingHeader(
   version: string,

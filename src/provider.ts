@@ -1,7 +1,6 @@
 import {
   createAssistantMessageEventStream,
   type Api,
-  type AssistantMessage,
   type AssistantMessageEventStream,
   type Model,
   type SimpleStreamOptions,
@@ -9,14 +8,14 @@ import {
 } from "@earendil-works/pi-ai";
 import {
   billingHeader,
+  BUNDLED_CLAUDE_CODE_VERSION,
   clientHeaders,
-  newerVersion,
-  requiredVersion,
 } from "./claude-code.ts";
 import { addThreadBilling, firstUserText, rewriteSystem } from "./payload.ts";
 import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
-import { errorText, jsonBody } from "./util.ts";
+
+const REQUIRED_VERSION = /version (\d+(?:\.\d+)+) or newer is required/;
 
 type StreamFn = (
   model: Model<Api>,
@@ -26,7 +25,6 @@ type StreamFn = (
 
 export interface ProviderDeps {
   stream: StreamFn;
-  claudeCodeVersion: () => string;
   /** Full context windows from Pi's model catalog, keyed by model id. */
   contextWindows: ReadonlyMap<string, number>;
   watchRequest: (auth: RequestAuth) => RequestWatch;
@@ -44,33 +42,6 @@ function isFirstParty(baseUrl: string): boolean {
   }
 }
 
-function failedStream(
-  model: Model<Api>,
-  error: unknown,
-): AssistantMessageEventStream {
-  const stream = createAssistantMessageEventStream();
-  const message: AssistantMessage = {
-    role: "assistant",
-    content: [],
-    api: model.api,
-    provider: model.provider,
-    model: model.id,
-    usage: {
-      input: 0,
-      output: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      totalTokens: 0,
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-    },
-    stopReason: "error",
-    errorMessage: errorText(error),
-    timestamp: Date.now(),
-  };
-  stream.push({ type: "error", reason: "error", error: message });
-  return stream;
-}
-
 /**
  * Wraps Pi's Anthropic stream so subscription tokens are sent as Claude Code
  * requests. Requests with an API key pass through unchanged.
@@ -78,19 +49,11 @@ function failedStream(
 export function createProviderStream(deps: ProviderDeps): StreamFn {
   // Anthropic names the Claude Code version a model requires, so the bundled
   // version never has to follow new models.
-  let learned = "0";
+  let version = BUNDLED_CLAUDE_CODE_VERSION;
   return (model, context, options) => {
     const accessToken = options?.apiKey;
     if (!accessToken || !isSubscriptionToken(accessToken))
       return deps.stream(model, context, options);
-
-    let version: string;
-    try {
-      version = deps.claudeCodeVersion();
-    } catch (error) {
-      return failedStream(model, error);
-    }
-    version = newerVersion(version, learned);
 
     const headers = clientHeaders(options.headers, version, options.sessionId);
     const firstParty = isFirstParty(model.baseUrl);
@@ -131,11 +94,11 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
           let response = await send(body);
           const required =
             response.status === 400
-              ? requiredVersion(await jsonBody(response))
+              ? REQUIRED_VERSION.exec(await response.clone().text())?.[1]
               : undefined;
           if (required && typeof body === "string") {
-            learned = newerVersion(learned, required);
-            const retried = billingHeader(required, userText, firstParty);
+            version = required;
+            const retried = billingHeader(version, userText, firstParty);
             await response.body?.cancel();
             // Anthropic checks the billing version, so the user-agent can stay.
             response = await send(
