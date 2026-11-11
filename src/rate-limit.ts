@@ -1,7 +1,7 @@
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
 import { parseLimitHeaders, parseUsageBody, type Limits } from "./limits.ts";
 import { exhaustedMessage } from "./status.ts";
-import { errorText, isRecord } from "./util.ts";
+import { errorText, isRecord, jsonBody } from "./util.ts";
 
 const USAGE_CACHE_MS = 30_000;
 
@@ -28,14 +28,7 @@ export interface RequestWatch {
 }
 
 async function isExtraUsageExhausted(response: Response): Promise<boolean> {
-  let body: unknown;
-  try {
-    body = await response.clone().json();
-  } catch (error) {
-    // Leave non-JSON responses to the provider's normal error handling.
-    if (error instanceof SyntaxError) return false;
-    throw error;
-  }
+  const body = await jsonBody(response);
   return (
     isRecord(body) &&
     body.type === "error" &&
