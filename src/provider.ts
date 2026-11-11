@@ -1,7 +1,6 @@
 import {
   createAssistantMessageEventStream,
   type Api,
-  type AssistantMessage,
   type AssistantMessageEventStream,
   type Model,
   type SimpleStreamOptions,
@@ -16,7 +15,7 @@ import {
 import { addThreadBilling, firstUserText, rewriteSystem } from "./payload.ts";
 import { movePiDocs } from "./pi-docs.ts";
 import type { RequestAuth, RequestWatch } from "./rate-limit.ts";
-import { errorText, jsonBody } from "./util.ts";
+import { jsonBody } from "./util.ts";
 
 type StreamFn = (
   model: Model<Api>,
@@ -26,7 +25,7 @@ type StreamFn = (
 
 export interface ProviderDeps {
   stream: StreamFn;
-  claudeCodeVersion: () => string;
+  claudeCodeVersion: string;
   /** Full context windows from Pi's model catalog, keyed by model id. */
   contextWindows: ReadonlyMap<string, number>;
   watchRequest: (auth: RequestAuth) => RequestWatch;
@@ -44,33 +43,6 @@ function isFirstParty(baseUrl: string): boolean {
   }
 }
 
-function failedStream(
-  model: Model<Api>,
-  error: unknown,
-): AssistantMessageEventStream {
-  const stream = createAssistantMessageEventStream();
-  const message: AssistantMessage = {
-    role: "assistant",
-    content: [],
-    api: model.api,
-    provider: model.provider,
-    model: model.id,
-    usage: {
-      input: 0,
-      output: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      totalTokens: 0,
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-    },
-    stopReason: "error",
-    errorMessage: errorText(error),
-    timestamp: Date.now(),
-  };
-  stream.push({ type: "error", reason: "error", error: message });
-  return stream;
-}
-
 /**
  * Wraps Pi's Anthropic stream so subscription tokens are sent as Claude Code
  * requests. Requests with an API key pass through unchanged.
@@ -84,13 +56,7 @@ export function createProviderStream(deps: ProviderDeps): StreamFn {
     if (!accessToken || !isSubscriptionToken(accessToken))
       return deps.stream(model, context, options);
 
-    let version: string;
-    try {
-      version = deps.claudeCodeVersion();
-    } catch (error) {
-      return failedStream(model, error);
-    }
-    version = newerVersion(version, learned);
+    const version = newerVersion(deps.claudeCodeVersion, learned);
 
     const headers = clientHeaders(options.headers, version, options.sessionId);
     const firstParty = isFirstParty(model.baseUrl);

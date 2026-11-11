@@ -113,7 +113,7 @@ function piFetch(status: number, headers: Record<string, string> = {}) {
 function deps(overrides: Partial<ProviderDeps>): ProviderDeps {
   return {
     stream: fakeAdapter().stream,
-    claudeCodeVersion: () => "2.1.289",
+    claudeCodeVersion: "2.1.289",
     contextWindows: new Map([["claude-test", 1_000_000]]),
     watchRequest: () => ({
       inspect: async (response) => response,
@@ -290,21 +290,6 @@ describe("createProviderStream", () => {
       "claude-cli/2.1.289 (external, pi)",
       "claude-cli/2.1.400 (external, pi)",
     ]);
-  });
-
-  it("fails visibly when the Claude Code version is unreadable", async () => {
-    const adapter = fakeAdapter();
-    const stream = createProviderStream(
-      deps({
-        stream: adapter.stream,
-        claudeCodeVersion: () => {
-          throw new Error("cannot run claude --version");
-        },
-      }),
-    );
-    const result = await stream(model, context, { apiKey: TOKEN }).result();
-    expect(result.errorMessage).toBe("cannot run claude --version");
-    expect(adapter.calls).toHaveLength(0);
   });
 
   it("routes responses and errors through the request watch", async () => {
