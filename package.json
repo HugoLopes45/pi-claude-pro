@@ -1,7 +1,7 @@
 {
   "name": "pi-claude-pro",
   "version": "1.1.2",
-  "description": "Use your Claude Pro, Max or Ultra subscription in the Pi coding agent, without an Anthropic API key. The Pi footer shows your usage limits.",
+  "description": "Use your Claude Pro, Max or Ultra plan in the Pi coding agent with Opus, Sonnet, Haiku and Fable. No API key, no Claude Code, your usage limits in the footer.",
   "type": "module",
   "license": "MIT",
   "author": "HugoLopes45 (https://github.com/HugoLopes45)",
@@ -21,6 +21,7 @@
     "claude-pro",
     "claude-max",
     "claude-ultra",
+    "claude-fable",
     "claude-subscription",
     "claude-code",
     "anthropic",

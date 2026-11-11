@@ -1,17 +1,27 @@
-# pi-claude-pro: Claude Pro, Max and Ultra subscription for Pi
+# pi-claude-pro: use your Claude Pro, Max or Ultra plan in Pi
 
 [![CI](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pi-claude-pro)](https://www.npmjs.com/package/pi-claude-pro)
 [![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
 [![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
 
-Use your Claude Pro, Max or Ultra subscription in the [Pi](https://pi.dev) coding agent. Log in with your Claude account (OAuth). You do not need an Anthropic API key or Claude Code. The Pi footer shows how much of your usage limits you have used. When a limit is spent, Pi tells you which limit and, if Anthropic sends it, the reset time.
+**Use the Claude plan you already pay for in the [Pi](https://pi.dev) coding agent.** Log in once with your Claude account and run Claude Opus, Sonnet, Haiku and Fable in Pi. Requests count against your plan limits instead of an API key. The footer shows your 5-hour and weekly usage after each request.
 
 ```bash
 pi install npm:pi-claude-pro
 ```
 
-This package is unofficial. Read [Risks and limits](#risks-and-limits) before you use it.
+No Anthropic API key. No Claude Code install. No extra npm dependencies: it uses the Pi packages you already have. This package is unofficial: read [Risks and limits](#risks-and-limits) before you use it.
+
+## Why pi-claude-pro
+
+- **Your plan instead of an API key.** Pro, Max and Ultra plans include Claude usage. Pi uses that usage.
+- **Your limits in view.** A warning color appears before a limit is spent.
+- **A clear stop, not a retry loop.** A spent limit gets a message with the limit name.
+- **Continued threads stay on your subscription.**
+- **New models without a pi-claude-pro update.** The extension adapts to the Claude Code version that Anthropic requires.
+- **The full context window** of each model.
+- **Your setup stays intact.** Your instructions, tools and skills stay in place.
 
 ## Quick start
 
@@ -26,7 +36,7 @@ The footer shows **Claude Pro** on every plan when the extension is active.
 
 Use only one extension that handles the `anthropic` provider. Remove other Claude subscription extensions first.
 
-## What you see
+## Your usage in the footer
 
 | Footer                                           | Meaning                                                        |
 | ------------------------------------------------ | -------------------------------------------------------------- |
@@ -36,16 +46,14 @@ Use only one extension that handles the `anthropic` provider. Remove other Claud
 | `Claude extra usage · resets 18:00`              | The subscription limit is spent. Requests use extra usage.     |
 | `Claude weekly limit reached · resets Sat 09:30` | The subscription refuses requests until the reset.             |
 
-## What it handles for you
+## How it works
 
-- **Requests count against your subscription.** The extension sends each request as Claude Code does: user agent, `x-app` header, session header and billing block.
-- **Continued threads work.** Pi 1.5.1 continues a message thread without a system prompt. The extension adds the billing block to these requests too, so Anthropic does not refuse them with HTTP 429.
-- **A newer required Claude Code version is handled.** The extension sends Claude Code version 2.1.322. When a model requires a newer version, Anthropic names it, and the extension retries once with that version and keeps it for the session.
-- **A spent limit gets a clear message, not a retry loop.** The error names the limit and, if known, its reset time. Pi does not retry a request that cannot succeed. A temporary 429 stays retryable.
-- **You get the full context window** from Pi's model catalog.
-- **API key requests are not changed.**
-
-The extension moves Pi's documentation section from the system prompt to the start of the first user message. Only complete `<docs>` blocks that start with `Pi documentation` are moved. Custom documentation, instructions, tools and skills stay in place, including prompts that other extensions return.
+- The extension sends each subscription request as Claude Code does: user agent, `x-app` header, session header and billing block.
+- Pi 1.5.1 continues a message thread without a system prompt. The extension adds the billing block to these requests too, so Anthropic does not refuse them with HTTP 429.
+- The extension sends Claude Code version 2.1.322. When a model requires a newer version, Anthropic names it in the error. The extension retries once with that version and keeps it for the session.
+- When a limit is spent, the error names the limit and, if Anthropic sends it, the reset time. Pi does not retry these requests. A temporary 429 stays retryable.
+- The extension moves Pi's documentation section from the system prompt to the start of the first user message. Only complete `<docs>` blocks that start with `Pi documentation` are moved. Custom documentation, instructions, tools and skills stay in place, including prompts that other extensions return.
+- Requests that use an Anthropic API key are not changed.
 
 ## Risks and limits
 
@@ -60,6 +68,8 @@ The extension moves Pi's documentation section from the system prompt to the sta
 **Do I need Claude Code?** No. The extension does not run or call Claude Code.
 
 **Does it work on a plan without a 5-hour limit, such as Ultra?** Yes. When Anthropic sends no 5-hour window, the footer shows only the weekly limit.
+
+**Can I use Claude Fable in Pi?** Yes. On Max and Ultra, Fable counts against your plan, up to 50% of your weekly limit. On Pro, Anthropic bills Fable as paid usage credits. The extension sends Claude Code 2.1.322, and Fable 5.2 requires 2.1.321 or later.
 
 **Is it allowed by Anthropic?** It is unofficial and can break the Anthropic Consumer Terms. See [Risks and limits](#risks-and-limits).
 
