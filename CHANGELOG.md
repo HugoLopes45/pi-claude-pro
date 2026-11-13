@@ -1,10 +1,12 @@
 # Changelog
 
+English | [简体中文](https://github.com/HugoLopes45/pi-claude-pro/blob/main/CHANGELOG.zh-CN.md)
+
 Pi shows the entries newer than your installed version after `pi update`.
 
 ## [1.4.2] - 2026-11-13
 
-- Documentation in Simplified Chinese: README, contribution guide and security policy. No change to the extension.
+- Documentation in Simplified Chinese: README, contribution guide, security policy and changelog. No change to the extension.
 
 ## [1.4.1] - 2026-11-13
 
