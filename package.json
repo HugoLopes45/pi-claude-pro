@@ -50,10 +50,9 @@
   },
   "scripts": {
     "check": "tsc --noEmit && npm run lint && vitest --run",
-    "test": "vitest --run",
     "lint": "node scripts/lint.ts",
     "check:live": "node scripts/live-check.ts",
-    "prepublishOnly": "test -n \"$GITHUB_ACTIONS\" || test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
+    "prepublishOnly": "npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
