@@ -74,6 +74,14 @@ describe("parseLimitHeaders", () => {
     expect(limits).toMatchObject({ exhausted: false, extraUsage: true });
   });
 
+  it("treats an allowed request billed as extra usage as extra usage", () => {
+    const limits = parseLimitHeaders(
+      { [`${P}status`]: "allowed", [`${P}overage-in-use`]: "true" },
+      200,
+    );
+    expect(limits).toMatchObject({ exhausted: false, extraUsage: true });
+  });
+
   it("infers a rejection from a 429 that names a claim", () => {
     const limits = parseLimitHeaders(
       { [`${P}representative-claim`]: "seven_day" },
