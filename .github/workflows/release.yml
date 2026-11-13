@@ -50,13 +50,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-      # Pi shows CHANGELOG.md to users after an update.
+      # Pi shows CHANGELOG.md to users after an update; CHANGELOG.zh-CN.md is its translation.
       - name: Require a changelog entry
         run: |
-          if ! grep -q "^## \[${TAG#v}\]" CHANGELOG.md; then
-            echo "CHANGELOG.md needs a '## [${TAG#v}]' entry." >&2
-            exit 1
-          fi
+          for file in CHANGELOG.md CHANGELOG.zh-CN.md; do
+            if ! grep -q "^## \[${TAG#v}\]" "$file"; then
+              echo "$file needs a '## [${TAG#v}]' entry." >&2
+              exit 1
+            fi
+          done
         env:
           TAG: ${{ github.event.release.tag_name }}
       - run: npm ci --ignore-scripts

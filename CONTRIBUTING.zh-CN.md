@@ -58,14 +58,14 @@ pi -e .
 
 ### 发布流程
 
-1. 在一个 pull request 中，在 `CHANGELOG.md` 顶部添加一条 `## [X.Y.Z] - YYYY-MM-DD` 记录，用用户能理解的话来写。修复选择 `patch`，兼容的新功能选择 `minor`，不兼容的变更选择 `major`。用户运行 `pi update` 后，Pi 会向他们显示这条记录。`CHANGELOG.md` 只用英文书写，因为 Pi 只读取这个文件。
+1. 在一个 pull request 中，在 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 顶部各添加一条 `## [X.Y.Z] - YYYY-MM-DD` 记录，用用户能理解的话来写。修复选择 `patch`，兼容的新功能选择 `minor`，不兼容的变更选择 `major`。用户运行 `pi update` 后，Pi 会向他们显示这条记录。Pi 只读取 `CHANGELOG.md`。
 2. 等待要发布的 `main` 提交的 CI 通过。
 3. 在 GitHub 上打开 **Releases > Draft a new release**。
 4. 在 `main` 上创建标签 `vX.Y.Z`。
 5. 选择 **Generate release notes**，然后选择 **Publish release**。
 6. 在 Actions 运行中批准 `npm` 环境的部署。
 
-以下发布会被工作流拒绝：不是由所有者创建的发布、预发布、不符合 `vX.Y.Z` 的标签、不在 `main` 上的提交、CI 未通过的提交，或者 `CHANGELOG.md` 中没有对应记录的版本。工作流会运行 `npm run check`，根据标签设置包版本，并带 npm provenance 发布。新的 npm 发布会更新 `latest` dist-tag。
+以下发布会被工作流拒绝：不是由所有者创建的发布、预发布、不符合 `vX.Y.Z` 的标签、不在 `main` 上的提交、CI 未通过的提交，或者 `CHANGELOG.md`、`CHANGELOG.zh-CN.md` 任一文件中没有对应记录的版本。工作流会运行 `npm run check`，根据标签设置包版本，并带 npm provenance 发布。新的 npm 发布会更新 `latest` dist-tag。
 
 Release 和 `v*` 标签不可更改。如果发布因外部原因失败，请在原来的运行中使用 **Re-run failed jobs**。如果代码需要修复，请发布一个新版本。
 
