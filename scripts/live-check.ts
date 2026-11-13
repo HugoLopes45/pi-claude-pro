@@ -63,13 +63,18 @@ try {
     const last = session.messages.at(-1);
     const response = responses.at(-1);
     const status = response?.headers.get("anthropic-ratelimit-unified-status");
-    console.log(`HTTP ${response?.status ?? "none"}, unified status ${status}`);
+    const overage = response?.headers.get(
+      "anthropic-ratelimit-unified-overage-in-use",
+    );
+    console.log(
+      `HTTP ${response?.status ?? "none"}, unified status ${status}, overage in use ${overage}`,
+    );
     if (last?.role !== "assistant") failures.push("Request failed: no reply");
     else if (last.stopReason === "error")
       failures.push(`Request failed: ${last.errorMessage}`);
-    if (!status || !ALLOWED.has(status))
+    if (!status || !ALLOWED.has(status) || overage === "true")
       failures.push(
-        `Anthropic did not bill the request to the subscription (unified status: ${status}).`,
+        `Anthropic did not bill the request to the subscription (unified status: ${status}, overage in use: ${overage}).`,
       );
   }
 } finally {

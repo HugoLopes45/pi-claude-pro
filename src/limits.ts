@@ -8,7 +8,7 @@ const USAGE_CLAIMS = [
   "seven_day_sonnet",
 ];
 /** Weekly limits that apply only to one model family. */
-const MODEL_CLAIMS: Record<string, string> = {
+export const MODEL_CLAIMS: Record<string, string> = {
   seven_day_opus: "opus",
   seven_day_sonnet: "sonnet",
 };
@@ -31,7 +31,7 @@ export interface UsageWindow {
 export interface Limits {
   /** The subscription refused the request and extra usage does not cover it. */
   exhausted: boolean;
-  /** The subscription is spent and the request is billed as extra usage. */
+  /** The request is billed as extra usage, even when plan limits remain. */
   extraUsage: boolean;
   claim?: string;
   /** Unix time in seconds. */
@@ -65,7 +65,8 @@ export function parseLimitHeaders(
       httpStatus === 429 &&
       (claim !== undefined || overage !== undefined));
   const extraUsage =
-    rejected && (overage === "allowed" || overage === "allowed_warning");
+    h["overage-in-use"] === "true" ||
+    (rejected && (overage === "allowed" || overage === "allowed_warning"));
   const windows = Object.entries(HEADER_WINDOWS).flatMap(
     ([key, name]): UsageWindow[] => {
       const utilization = finite(h[`${key}-utilization`]);
