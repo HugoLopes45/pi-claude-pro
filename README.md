@@ -83,7 +83,7 @@ Run `/claude-pro` to see the current model, whether its requests use your plan, 
 
 **Can I use Claude Fable in Pi?** Yes. On Max and Ultra, Fable counts against your plan, up to 50% of your weekly limit. On Pro, Anthropic bills Fable as paid usage credits. The extension sends Claude Code 2.1.322, and Fable 5.2 requires 2.1.321 or later. When you use Fable, the footer also shows the weekly Fable limit. When it is spent, switch to another model to continue on your plan.
 
-**Why does Anthropic bill my Claude subscription as extra usage in Pi?** Anthropic bills a request as extra usage when a plan limit is spent, when the model needs usage credits on your plan, or when the system prompt looks like a third-party app. Pi's documentation section can cause the last one, so the extension moves it out of the system prompt. Run `/claude-pro` to see which cause applies.
+**Why does Anthropic bill my Claude subscription as extra usage in Pi?** Anthropic bills a request as extra usage when a plan limit is spent, when the model needs usage credits on your plan, or when the system prompt looks like a third-party app. Pi's documentation section can cause the last one, so the extension moves it out of the system prompt. Run `/claude-pro` to see your limits and the likely causes.
 
 **How do I see my Claude usage limits in Pi?** The footer shows the 5-hour and weekly usage after each request. Run `/claude-pro` for each limit with its reset time.
 
