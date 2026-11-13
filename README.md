@@ -3,6 +3,7 @@
 [![CI](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/HugoLopes45/pi-claude-pro/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pi-claude-pro)](https://www.npmjs.com/package/pi-claude-pro)
 [![Pi package](https://img.shields.io/badge/pi.dev-package-blue)](https://pi.dev/packages/pi-claude-pro)
+[![Node.js](https://img.shields.io/node/v/pi-claude-pro)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/npm/l/pi-claude-pro)](LICENSE)
 
 **Use the Claude plan you already pay for in the [Pi](https://pi.dev) coding agent.** Log in once with your Claude account and run Claude Opus, Sonnet, Haiku and Fable in Pi. Requests count against your plan limits instead of an API key. The footer shows your 5-hour and weekly usage after each request, and warns you when Anthropic bills a request as extra usage.
@@ -26,7 +27,7 @@ No Anthropic API key. No Claude Code install. No extra npm dependencies: it uses
 
 ## Quick start
 
-You need Pi and a Claude Pro, Max or Ultra subscription.
+You need Pi 1.0.3 or later, Node.js 22.19 or later, and a Claude Pro, Max or Ultra subscription.
 
 1. Install the package with the command above.
 2. Start Pi.

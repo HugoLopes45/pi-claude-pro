@@ -1,5 +1,6 @@
 rules:
   adhoc-packages:
     ignore:
-      # Testing against the latest published Pi is the purpose of this step.
-      - ci.yml:40
+      # Testing against the oldest supported and the latest published Pi is the purpose of these steps.
+      - ci.yml:47
+      - ci.yml:53

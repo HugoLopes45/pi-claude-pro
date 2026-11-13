@@ -37,8 +37,12 @@
   ],
   "files": [
     "extensions",
-    "src"
+    "src",
+    "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "pi": {
     "extensions": [
       "./extensions/index.ts"
@@ -46,9 +50,10 @@
   },
   "scripts": {
     "check": "tsc --noEmit && npm run lint && vitest --run",
+    "test": "vitest --run",
     "lint": "node scripts/lint.ts",
     "check:live": "node scripts/live-check.ts",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "test -n \"$GITHUB_ACTIONS\" || test \"$(npm whoami)\" = hugolopes45 || { echo 'Publish only as the npm user hugolopes45.' >&2; exit 1; }; npm run check"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
@@ -61,5 +66,13 @@
     "eslint": "^10.14.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

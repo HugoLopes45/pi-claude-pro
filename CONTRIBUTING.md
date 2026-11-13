@@ -13,7 +13,7 @@ npm run check
 
 `npm run check` validates TypeScript, cyclomatic complexity (at most 10 per function, `npm run lint`), and the offline tests. Split a function that is too complex; inline `eslint-disable` comments have no effect. The tests use a simulated Anthropic server, not your account.
 
-CI also installs the latest published Pi packages on Node 24 and reruns these checks. It runs weekly, even without repository changes.
+CI also installs Pi `1.0.3`, the oldest supported version, and the latest published Pi packages on Node 24, and reruns these checks. It runs weekly, even without repository changes.
 Keep the lockfile baseline reproducible; do not replace it with an unbounded dependency tree. Host-provided peer dependencies stay `*`.
 
 For an optional manual test in Pi:
@@ -55,13 +55,14 @@ Do not bump the package version in pull requests. The release tag sets the publi
 
 ### Release procedure
 
-1. Wait for CI to succeed on the `main` commit you want to publish.
-2. On GitHub, open **Releases > Draft a new release**.
-3. Create the tag `vX.Y.Z` on `main`. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes.
-4. Select **Generate release notes**, then **Publish release**.
-5. Approve the `npm` environment deployment in the Actions run.
+1. In a pull request, add a `## [X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md`, in words a user understands. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes. Pi shows this entry to users after `pi update`.
+2. Wait for CI to succeed on the `main` commit you want to publish.
+3. On GitHub, open **Releases > Draft a new release**.
+4. Create the tag `vX.Y.Z` on `main`.
+5. Select **Generate release notes**, then **Publish release**.
+6. Approve the `npm` environment deployment in the Actions run.
 
-The workflow rejects a release that is not from the owner, a prerelease, a tag that is not `vX.Y.Z`, a commit outside `main`, or a commit without successful CI. It runs `npm run check`, sets the package version from the tag and publishes with npm provenance. A new npm publication updates the `latest` dist-tag.
+The workflow rejects a release that is not from the owner, a prerelease, a tag that is not `vX.Y.Z`, a commit outside `main`, a commit without successful CI, or a version without a `CHANGELOG.md` entry. It runs `npm run check`, sets the package version from the tag and publishes with npm provenance. A new npm publication updates the `latest` dist-tag.
 
 Releases and `v*` tags are immutable. If publication fails for an external cause, use **Re-run failed jobs** on the original run. If the code needs a fix, publish a new version.
 
