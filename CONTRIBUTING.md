@@ -58,14 +58,14 @@ Do not bump the package version in pull requests. The release tag sets the publi
 
 ### Release procedure
 
-1. In a pull request, add a `## [X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md`, in words a user understands. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes. Pi shows this entry to users after `pi update`. Write `CHANGELOG.md` in English only, because Pi reads only this file.
+1. In a pull request, add a `## [X.Y.Z] - YYYY-MM-DD` entry at the top of `CHANGELOG.md` and `CHANGELOG.zh-CN.md`, in words a user understands. Choose `patch` for fixes, `minor` for compatible features, or `major` for breaking changes. Pi shows this entry to users after `pi update`. Pi reads only `CHANGELOG.md`.
 2. Wait for CI to succeed on the `main` commit you want to publish.
 3. On GitHub, open **Releases > Draft a new release**.
 4. Create the tag `vX.Y.Z` on `main`.
 5. Select **Generate release notes**, then **Publish release**.
 6. Approve the `npm` environment deployment in the Actions run.
 
-The workflow rejects a release that is not from the owner, a prerelease, a tag that is not `vX.Y.Z`, a commit outside `main`, a commit without successful CI, or a version without a `CHANGELOG.md` entry. It runs `npm run check`, sets the package version from the tag and publishes with npm provenance. A new npm publication updates the `latest` dist-tag.
+The workflow rejects a release that is not from the owner, a prerelease, a tag that is not `vX.Y.Z`, a commit outside `main`, a commit without successful CI, or a version missing from `CHANGELOG.md` or `CHANGELOG.zh-CN.md`. It runs `npm run check`, sets the package version from the tag and publishes with npm provenance. A new npm publication updates the `latest` dist-tag.
 
 Releases and `v*` tags are immutable. If publication fails for an external cause, use **Re-run failed jobs** on the original run. If the code needs a fix, publish a new version.
 

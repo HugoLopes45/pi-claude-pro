@@ -9,4 +9,4 @@
 ## Checks
 
 - [ ] `npm run check` passes.
-- [ ] The README matches the new behavior.
+- [ ] `README.md` and `README.zh-CN.md` match the new behavior.
