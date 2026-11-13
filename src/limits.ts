@@ -64,9 +64,10 @@ export function parseLimitHeaders(
     (h.status === undefined &&
       httpStatus === 429 &&
       (claim !== undefined || overage !== undefined));
-  const extraUsage =
-    h["overage-in-use"] === "true" ||
-    (rejected && (overage === "allowed" || overage === "allowed_warning"));
+  // A refusal is decided by the overage status, not by earlier overage use.
+  const extraUsage = rejected
+    ? overage === "allowed" || overage === "allowed_warning"
+    : h["overage-in-use"] === "true";
   const windows = Object.entries(HEADER_WINDOWS).flatMap(
     ([key, name]): UsageWindow[] => {
       const utilization = finite(h[`${key}-utilization`]);
