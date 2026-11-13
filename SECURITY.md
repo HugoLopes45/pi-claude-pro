@@ -1,5 +1,7 @@
 # Security policy
 
+English | [简体中文](SECURITY.zh-CN.md)
+
 ## Supported versions
 
 Security fixes target the latest published release. Older releases do not have a separate maintenance branch.

@@ -2,6 +2,10 @@
 
 Pi shows the entries newer than your installed version after `pi update`.
 
+## [1.4.2] - 2026-11-13
+
+- Documentation in Simplified Chinese: README, contribution guide and security policy. No change to the extension.
+
 ## [1.4.1] - 2026-11-13
 
 - Requires Node.js 22.19 or later, as Pi does. CI checks Pi 1.0.3, the oldest supported version, and the latest Pi.
