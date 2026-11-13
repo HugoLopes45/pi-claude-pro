@@ -37,8 +37,12 @@
   ],
   "files": [
     "extensions",
-    "src"
+    "src",
+    "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
   "pi": {
     "extensions": [
       "./extensions/index.ts"
@@ -61,5 +65,13 @@
     "eslint": "^10.14.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

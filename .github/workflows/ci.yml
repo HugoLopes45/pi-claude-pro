@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+env:
+  PI_PACKAGES: >-
+    @earendil-works/chord @earendil-works/pi-agent-core @earendil-works/pi-ai @earendil-works/pi-codemode
+    @earendil-works/pi-coding-agent @earendil-works/pi-mcp @earendil-works/pi-telemetry @earendil-works/pi-tui
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,12 +37,20 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run check
+      # Pi's packages depend on each other with caret ranges, so each one is pinned to match a real install.
+      - name: Check oldest supported Pi
+        if: matrix.node == 24
+        run: |
+          read -ra packages <<< "$PI_PACKAGES"
+          npm install --ignore-scripts --no-save --package-lock=false "${packages[@]/%/@1.0.3}"
+          npm run check
       - name: Check latest Pi
         if: matrix.node == 24
         run: |
-          npm install --no-save --package-lock=false @earendil-works/pi-ai@latest @earendil-works/pi-coding-agent@latest
+          read -ra packages <<< "$PI_PACKAGES"
+          npm install --ignore-scripts --no-save --package-lock=false "${packages[@]/%/@latest}"
           npm run check
 
   workflow-security:
@@ -47,6 +60,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
-        with:
-          advanced-security: false
+      # Repository settings allow only GitHub-owned actions, so zizmor runs from PyPI.
+      - run: pipx run zizmor==1.32.0 --format=github .github
+        env:
+          GH_TOKEN: ${{ github.token }}

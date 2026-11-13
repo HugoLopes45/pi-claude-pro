@@ -50,7 +50,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-      - run: npm ci
+      # Pi shows CHANGELOG.md to users after an update.
+      - name: Require a changelog entry
+        run: |
+          if ! grep -q "^## \[${TAG#v}\]" CHANGELOG.md; then
+            echo "CHANGELOG.md needs a '## [${TAG#v}]' entry." >&2
+            exit 1
+          fi
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+      - run: npm ci --ignore-scripts
       - name: Publish to npm
         run: |
           npm version "${TAG#v}" --no-git-tag-version --allow-same-version
