@@ -34,7 +34,7 @@ export function isSubscriptionToken(apiKey: string | undefined): boolean {
   return apiKey?.includes("sk-ant-oat") ?? false;
 }
 
-function isFirstParty(baseUrl: string): boolean {
+export function isFirstParty(baseUrl: string): boolean {
   try {
     return new URL(baseUrl).hostname === "api.anthropic.com";
   } catch {
